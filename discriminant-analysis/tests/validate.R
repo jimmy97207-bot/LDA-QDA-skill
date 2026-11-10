@@ -438,6 +438,66 @@ piped <- run_pipeline(miss, "Species", x, impute = "median")
 check(piped$data_checks$value[piped$data_checks$check == "missing_cells"] == 30,
       sum(piped$class_counts$n) == 150L,
       piped$diagnostic_status == "completed")
+# Reading notes: a note above every table, a note below every figure.
+md <- readLines(file.path(cli_out, "report.md"), encoding = "UTF-8")
+fig_heads <- grep("^### \u5716 [0-9]+\uff1a", md)
+check(length(fig_heads) == 6L,
+      all(grepl("^- `figures/", md[fig_heads + 2L])),
+      all(nchar(md[fig_heads + 4L]) > 30L),
+      any(grepl("\u600e\u9ebc\u770b\u9019\u5f35\u8868", md, fixed = TRUE)))
+tab_start <- which(startsWith(md, "| ") & !startsWith(c("", head(md, -1L)), "| "))
+above <- md[tab_start - 2L]
+check(all(nzchar(above)),
+      all(!startsWith(above, "#") | startsWith(above, "### \u6df7\u6dc6\u77e9\u9663")))
+dcd <- data_checks_display(piped)
+check(identical(names(dcd), c("\u6aa2\u67e5\u9805\u76ee", "\u7d50\u679c", "\u8aaa\u660e")),
+      !any(dcd[[1]] %in% piped$data_checks$check),
+      dcd[[2]][dcd[[1]] == "X \u6c92\u6709\u5b8c\u5168\u5171\u7dda"] == "\u662f",
+      any(grepl("Sepal.Length=13", dcd[[3]], fixed = TRUE)))
+# Figure numbers follow the file prefix, so a skipped pairs plot keeps \u5716 5 = LDA.
+fn <- figure_notes(result, c("01_class_counts.png", "02_boxplots.png",
+  "03_qq_by_class.png", "05_lda_scores.png", "06_confusion_matrix.png"))
+check(identical(sub("\uff1a.*", "", fn$title), paste("\u5716", c(1, 2, 3, 5, 6))),
+      grepl("LD1 \u5360 99.1%", fn$text[4], fixed = TRUE),
+      grepl("versicolor \u90a3\u4e00\u5217\u3001virginica \u90a3\u4e00\u6b04\u662f 4.0%",
+            confusion_example(result), fixed = TRUE),
+      any(grepl("figure_notes(result, figs)", qmd, fixed = TRUE)))
+two <- run_pipeline(droplevels(subset(iris, Species != "setosa")), "Species", x)
+check(grepl("\u53ea\u6709\u4e00\u689d\u5224\u5225\u8ef8", figure_notes(two, "05_lda_scores.png")$text,
+            fixed = TRUE))
+# Results report: purpose first, "\u7d50\u8ad6\u8207\u8a0e\u8ad6" last, careful wording.
+rpt <- make_report(result)
+has <- function(txt, lines = rpt) any(grepl(txt, lines, fixed = TRUE))
+check(tail(grep("^## ", md, value = TRUE), 1L) == "## \u7d50\u8ad6\u8207\u8a0e\u8ad6",
+      startsWith(md[3], "\u672c\u5206\u6790\u4ee5 4 \u500b\u9810\u6e2c\u8b8a\u6578\uff08\u82b1\u843c\u9577\u5ea6"),
+      has("\u76f8\u5dee 0.60 \u500b\u767e\u5206\u9ede"), has("\u5e73\u5747\u591a\u7b54\u5c0d 0.9 \u7b46"),
+      has("LDA \u8f03\u9ad8 6 \u6b21\u3001\u76f8\u540c 4 \u6b21\u3001\u8f03\u4f4e 0 \u6b21"),
+      has("LDA \u5728\u672c\u6b21\u4ea4\u53c9\u9a57\u8b49\u4e2d\u7565\u512a\uff0c\u56e0\u6b64\u4f9d\u65e2\u5b9a\u898f\u5247"),
+      !any(grepl("\u986f\u8457\u512a\u65bc", rpt) & !grepl("\u4e0d\u4ee3\u8868", rpt)),
+      has("\u4f46 QDA \u7684\u5be6\u969b\u9a57\u8b49\u8868\u73fe\u6c92\u6709\u66f4\u597d"),
+      has("\u4e0d\u4ee3\u8868\u5df2\u8b49\u660e\u591a\u5143\u5e38\u614b\u6210\u7acb"))
+check(has("\u5169\u7a2e\u65b9\u6cd5\u5c0d setosa \u7684\u53ec\u56de\u7387\u8207\u7cbe\u78ba\u7387\u7686\u70ba 100%"),
+      has("\u8aa4\u5224\u5168\u90e8\u767c\u751f\u5728 versicolor \u8207 virginica \u4e4b\u9593"),
+      has("LDA \u5c0d versicolor \u7684\u53ec\u56de\u7387\u70ba 96.00%\uff0c\u9ad8\u65bc QDA \u7684 93.80%"),
+      has("QDA \u5c0d virginica \u7684\u53ec\u56de\u7387\u70ba 98.20%\uff0c\u9ad8\u65bc LDA \u7684 97.80%"),
+      has("setosa \u5728 Petal.Length\u3001Petal.Width \u7684\u7bc4\u570d\u8207\u5176\u4ed6\u985e\u5225\u5b8c\u5168\u6c92\u6709\u91cd\u758a"),
+      has("\u4e0d\u4ee3\u8868\u500b\u5225\u8b8a\u6578\u5728\u6a21\u578b\u4e2d\u7684\u7368\u7acb\u8ca2\u737b\u6700\u5927"))
+check(has("\u4e0d\u4ee3\u8868\u6709 1,500 \u7b46\u7368\u7acb\u6a23\u672c"), has("\u4e0d\u662f\u65b0\u8cc7\u6599\u9810\u6e2c\u8868\u73fe\u7684\u4fe1\u8cf4\u5340\u9593"),
+      has("\u5206\u6578\u4e0d\u662f\u7368\u7acb\u6e2c\u8a66\u8868\u73fe"), has("\u5c1a\u7121\u5916\u90e8\u8cc7\u6599\u9a57\u8b49"),
+      has("\u662f\u5426\u70ba\u91cd\u8907\u767b\u9304\u4ecd\u9700\u4f9d\u539f\u59cb\u7d00\u9304\u78ba\u8a8d"),
+      has("\u4e0d\u662f\u5206\u985e\u6b63\u78ba\u7387\uff0c\u4e5f\u4e0d\u662f\u539f\u59cb\u8cc7\u6599\u7684\u8b8a\u7570\u89e3\u91cb\u7387", md),
+      has("\u672a\u767c\u73fe\u5b8c\u5168\u7dda\u6027\u76f8\u4f9d\uff0c\u4f46\u8b8a\u6578\u4e4b\u9593\u4ecd\u53ef\u80fd\u9ad8\u5ea6\u76f8\u95dc", md),
+      !any(grepl("\u5e7e\u4e4e\u5fc5\u7136|\u6bcf\u500b X \u90fd\u63d0\u4f9b\u65b0\u8cc7\u8a0a|\u4ee5 Mardia \u6aa2\u5b9a\u70ba\u6e96|\u4e0d\u7b97\u9055\u53cd\u5e38\u614b", md)))
+vi_case <- result
+vi_case$variable_info <- data.frame(column = c(x, "Species"),
+  description = c("\u82b1\u843c\u9577\u5ea6", "\u82b1\u843c\u5bec\u5ea6", "\u82b1\u74e3\u9577\u5ea6", "\u82b1\u74e3\u5bec\u5ea6", "\u9cf6\u5c3e\u82b1\u54c1\u7a2e\uff08\u4e09\u7a2e\uff09"))
+check(startsWith(purpose_text(vi_case),
+        "\u672c\u5206\u6790\u4ee5 4 \u500b\u9810\u6e2c\u8b8a\u6578\uff08\u82b1\u843c\u9577\u5ea6\u3001\u82b1\u843c\u5bec\u5ea6\u3001\u82b1\u74e3\u9577\u5ea6\u3001\u82b1\u74e3\u5bec\u5ea6\uff09\u9810\u6e2c Species\uff08\u9cf6\u5c3e\u82b1\u54c1\u7a2e\uff09\u7684 3 \u500b\u985e\u5225"),
+      has("QDA \u5728\u672c\u6b21\u4ea4\u53c9\u9a57\u8b49\u4e2d\u8f03\u512a", make_report(qda_case)),
+      has("QDA \u7684\u9a57\u8b49\u8868\u73fe\u4e5f\u8f03\u9ad8", make_report(qda_case)),
+      !has("\u7368\u7acb\u6a23\u672c", conclusion_lines(blocked)),
+      any(grepl("conclusion_lines(result)", qmd, fixed = TRUE)),
+      any(grepl("diagnostic_outcome(result)$full", qmd, fixed = TRUE)))
 summary <- c(
   "# LDA\uff0fQDA \u539f\u578b\u9a57\u6536", "",
   paste0("- \u901a\u904e\u6aa2\u67e5\u6578\uff1a", count),

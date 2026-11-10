@@ -65,7 +65,7 @@ $$
 \ \Longrightarrow\ \mathbf W^{-1}\mathbf B\,\mathbf a=\lambda\mathbf a .
 $$
 
-$\operatorname{rank}(\mathbf B)\le K-1$，所以最多 $\min(p,K-1)$ 個判別軸。兩類時方向為 $\mathbf a\propto\mathbf W^{-1}(\bar{\mathbf x}_1-\bar{\mathbf x}_2)$。`lda()` 輸出的 `scaling` 就是這些軸，`svd^2/sum(svd^2)` 是各軸解釋的組間變異比例（iris：LD1 99.1%）。
+$\operatorname{rank}(\mathbf B)\le K-1$，所以最多 $\min(p,K-1)$ 個判別軸。兩類時方向為 $\mathbf a\propto\mathbf W^{-1}(\bar{\mathbf x}_1-\bar{\mathbf x}_2)$。`lda()` 輸出的 `scaling` 就是這些軸，`svd^2/sum(svd^2)` 是各軸的相對判別資訊比例（各軸的組間對組內變異比占總和的比例；iris：LD1 99.1%），不是分類正確率，也不是原始資料的變異解釋率。
 
 ### 仿射不變性
 
@@ -93,7 +93,7 @@ $$
 M(1-c)\ \dot\sim\ \chi^2_{p(p+1)(K-1)/2}.
 $$
 
-自由度 $p(p+1)(K-1)/2$ 正好是 QDA 比 LDA 多估的參數個數。Box's M 對非常態非常敏感，樣本大時幾乎一定顯著；它說明「共變異數不同」，不說明「多估這些參數後預測會比較好」。
+自由度 $p(p+1)(K-1)/2$ 正好是 QDA 比 LDA 多估的參數個數。Box's M 對非常態非常敏感，樣本量增加時可能偵測到較小的差異，應結合驗證表現解讀；它說明「共變異數不同」，不說明「多估這些參數後預測會比較好」。
 
 ### Mardia 與 Box's M 的合併解讀
 

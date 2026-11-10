@@ -830,30 +830,105 @@ imputation_summary <- function(result) {
   out
 }
 
-make_report <- function(result) {
-  needed <- c("settings", "metrics", "status", "model_status",
-              "diagnostic_status", "diagnostics", "data_summary", "class_counts")
-  if (!all(needed %in% names(result))) stop("Use run_pipeline() to assemble results.")
-  state <- function(x) switch(x,
-    completed = "完成", partial = "部分完成",
-    blocked = "待處理", failed = "失敗", x)
-  pct <- function(v) ifelse(is.na(v), "未計算", sprintf("%.2f%%", 100 * v))
+# ---- Report tables with Chinese headers, and how-to-read notes -------------
+
+pct_text <- function(v) ifelse(is.na(v), "未計算", sprintf("%.2f%%", 100 * v))
+
+rename_cols <- function(d, labels) {
+  hit <- names(d) %in% names(labels)
+  names(d)[hit] <- unname(labels[names(d)[hit]])
+  d
+}
+
+class_counts_display <- function(result) {
+  d <- result$class_counts
+  data.frame(類別 = d$class, 筆數 = d$n,
+             比例 = sprintf("%.1f%%", 100 * d$n / sum(d$n)), check.names = FALSE)
+}
+
+variable_info_display <- function(result) {
+  d <- result$variable_info
+  if (!is.data.frame(d) || !nrow(d)) return(d)
+  rename_cols(d, c(column = "欄位", description = "說明", unit = "單位",
+                   role = "角色", type = "型態", missing = "缺失數"))
+}
+
+# Each check gets a Chinese name and a sentence on what its number means.
+data_checks_display <- function(result) {
+  d <- result$data_checks
+  if (!is.data.frame(d) || !nrow(d)) return(d)
+  info <- list(
+    observations = c("觀測筆數", "分析用的資料筆數"),
+    complete_observations = c("完整觀測筆數",
+      "X 沒有空格的筆數；假設診斷、描述統計與圖 1–5 只用這些資料"),
+    missing_cells = c("X 空格數", "X 中空白的格數"),
+    rows_with_missing = c("有空格的筆數",
+      "至少有一格 X 空白的筆數；不刪除，模型在每輪練習資料內補中位數"),
+    duplicate_rows = c("重複筆數",
+      "Y 和 X 都與其他列完全相同的筆數"),
+    class_balance_ratio = c("類別筆數比",
+      "最多類 ÷ 最少類；1 代表各類一樣多，大於 1.5 時不要只看正確率"),
+    classes_with_n_le_p = c("筆數太少的類別數",
+      "筆數 ≤ X 個數的類別數；不是 0 時，QDA 無法估計這些類別"),
+    zero_within_class_variance = c("類內沒有變化的組合數",
+      "某類別在某個變數上全部同值的組合數；不是 0 時模型可能算不出來"),
+    full_rank_X = c("X 沒有完全線性相依",
+      "是＝未發現完全線性相依，但變數之間仍可能高度相關；否＝某個 X 可由其他 X 完全算出，LDA／QDA 無法計算"),
+    iqr_outlier_rows = c("疑似離群筆數",
+      "在各類別內，任一變數超出 1.5 倍四分位距（IQR）的筆數；只標記，全部保留"))
+  K <- nrow(result$class_counts)
+  p <- length(result$settings$x)
+  out <- lapply(seq_len(nrow(d)), function(i) {
+    ck <- d$check[i]; note <- d$note[i]; value <- d$value[i]
+    if (is.null(info[[ck]]))
+      return(data.frame(檢查項目 = ck, 結果 = format(value), 說明 = note,
+                        check.names = FALSE))
+    detail <- switch(ck,
+      observations = paste0(K, " 類、", p, " 個 X"),
+      missing_cells = note,
+      classes_with_n_le_p = sub("^QDA not estimable for: ", "", note),
+      zero_within_class_variance = note,
+      duplicate_rows = if (isTRUE(value > 0)) paste0("數值相同不必然代表同一個體或標本；",
+        "本次保留，是否為重複登錄仍需依原始紀錄確認") else "本資料沒有",
+      "")
+    if (is.na(detail)) detail <- ""
+    shown <- if (ck == "full_rank_X") ifelse(value == 1, "是", "否") else format(value)
+    data.frame(檢查項目 = info[[ck]][1], 結果 = shown,
+               說明 = if (nzchar(detail)) paste0(info[[ck]][2], "（", detail, "）")
+                      else info[[ck]][2],
+               check.names = FALSE)
+  })
+  do.call(rbind, out)
+}
+
+metrics_display <- function(result) {
   metric <- result$metrics
   metric$model <- toupper(metric$model)
-  metric$status <- c(
-    complete = "驗證完整", infeasible = "無法估計",
-    cv_failed = "驗證不完整")[metric$status]
+  metric$status <- c(complete = "驗證完整", infeasible = "無法估計",
+                     cv_failed = "驗證不完整")[metric$status]
   for (nm in intersect(c("coverage", "accuracy", "macro_recall",
                          "macro_recall_sd", "macro_f1"), names(metric)))
-    metric[[nm]] <- pct(metric[[nm]])
+    metric[[nm]] <- pct_text(metric[[nm]])
   metric$correct_mean <- ifelse(is.na(metric$correct_mean), "未計算",
                                 sprintf("%.1f", metric$correct_mean))
-  labels_metric <- c(model = "模型", status = "模型狀態",
+  rename_cols(metric, c(model = "模型", status = "模型狀態",
     coverage = "預測涵蓋率", accuracy = "平均正確率",
     macro_recall = "平均 Macro recall", macro_recall_sd = "Macro recall 標準差",
     macro_f1 = "平均 Macro-F1", correct_mean = "平均答對筆數",
-    correct_min = "最少答對", correct_max = "最多答對")
-  names(metric) <- labels_metric[names(metric)]
+    correct_min = "最少答對", correct_max = "最多答對"))
+}
+
+class_recall_display <- function(result) {
+  d <- result$class_recall
+  if (!is.data.frame(d) || !nrow(d)) return(d)
+  d$model <- toupper(d$model)
+  for (nm in intersect(c("recall", "precision", "f1"), names(d)))
+    d[[nm]] <- pct_text(d[[nm]])
+  rename_cols(d, c(model = "模型", class = "類別", recall = "召回率 recall",
+                   precision = "精確率 precision", f1 = "F1"))
+}
+
+diagnostics_display <- function(result) {
   diag <- result$diagnostics
   labels <- c(
     computed = "已計算", computed_with_warning = "已計算，有警告",
@@ -862,6 +937,484 @@ make_report <- function(result) {
   known <- diag$status %in% names(labels)
   diag$status[known] <- unname(labels[diag$status[known]])
   names(diag) <- c("診斷", "組別", "樣本數", "統計量", "p 值", "狀態", "備註")
+  diag
+}
+
+data_summary_display <- function(result) {
+  d <- result$data_summary
+  if (!is.data.frame(d) || !nrow(d)) return(d)
+  rename_cols(d, c(class = "類別", variable = "變數", n = "筆數", mean = "平均數",
+                   sd = "標準差", min = "最小值", median = "中位數", max = "最大值"))
+}
+
+# One worked example from the confusion matrix of the selected model.
+confusion_example <- function(result) {
+  cm <- result$confusion_matrix
+  if (!is.data.frame(cm) || !nrow(cm)) return(character())
+  m <- if (!is.null(result$cv_leader) && result$cv_leader %in% cm$model)
+    result$cv_leader else cm$model[1]
+  z <- cm[cm$model == m & as.character(cm$truth) != as.character(cm$predicted), ]
+  if (!nrow(z) || max(z$row_pct, na.rm = TRUE) <= 0)
+    return(paste0(toupper(m), " 沒有任何誤判，對角線都是 100%。"))
+  k <- which.max(z$row_pct)
+  v <- sprintf("%.1f%%", 100 * z$row_pct[k])
+  paste0("例如 ", toupper(m), " 表中，", z$truth[k], " 那一列、", z$predicted[k],
+         " 那一欄是 ", v, "：真實是 ", z$truth[k], " 的資料，有 ", v, " 被誤判成 ",
+         z$predicted[k], "（這是誤判比例最高的一格）。")
+}
+
+# How-to-read notes placed above each table.
+report_guides <- function(result) {
+  N <- sum(result$class_counts$n)
+  R <- result$settings$repeats
+  folds <- result$settings$folds
+  list(
+    class_counts = paste0("下表是每個類別（Y）各有幾筆資料。各類筆數差很多時，",
+      "整體正確率會被筆數多的類別主導，所以本報告以 Macro recall 為主要指標。"),
+    variable_info = paste0("下表說明每個欄位的意思與單位。「角色」欄：X（預測變數）",
+      "是用來判斷的欄位，Y（分類變數）是要分的類別。"),
+    data_checks = paste0("以下只做標記與說明，不刪除或轉換任何資料（缺失值處理另見下一節）。",
+      "每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。"),
+    metrics = paste0("怎麼看這張表：每一列是一個方法，分數都是 ", R, " 次重複的平均。",
+      "「平均正確率」是全部資料猜對的比例；",
+      "「平均 Macro recall」是先算每一類各自猜對的比例再平均，每一類一樣重要，是本報告選方法的依據；",
+      "「Macro recall 標準差」越小，代表換一種隨機分組結果也差不多（它是切分之間的變動，不是信賴區間）；",
+      "「平均 Macro-F1」同時考慮漏抓和誤判；",
+      "「平均答對筆數」是每次重複 ", N, " 筆中答對幾筆，「最少／最多答對」是 ", R,
+      " 次中的範圍；「預測涵蓋率」是成功給出預測的比例，正常是 100%。"),
+    repeats = paste0("每一次重複都把資料重新隨機分成 ", folds, " 份；下表看得出分數隨切分變動多少，",
+      "以及哪個方法較常勝出。每一列是一次重複：「答對」是 ", N,
+      " 筆中答對幾筆，「較高」是該次 Macro recall 較高的方法。"),
+    class_recall = paste0("把 ", R, " 次重複的預測合併計算（每筆觀測被預測 ", R,
+      " 次）。每一列是一個方法在一個類別的表現：",
+      "「召回率」是這一類的資料有多少比例被正確認出；",
+      "「精確率」是被預測成這一類的資料中，真的屬於這一類的比例；",
+      "「F1」是兩者的綜合。越接近 100% 越好；某一類特別低，代表這一類容易被認錯。"),
+    confusion = c(paste0("混淆矩陣以列百分比呈現：每一列是一個真實類別，",
+      "數字是被預測成各類別的比例，每一列加起來是 100%。",
+      "對角線（列與欄是同一類）就是該類別的召回率，其他格子是誤判的去向。"),
+      confusion_example(result)),
+    diagnostics = paste0("Mardia 檢查每一類的資料是否接近多元常態（鐘形）：",
+      "Skewness（偏態）看分布是否不對稱，Kurtosis（峰態）看尾巴是否太厚或太薄。",
+      "Box's M 檢查各類資料的散開程度與方向（共變異數矩陣）是否相同，",
+      "是所有類別一起做的檢定（組別 ALL）。",
+      "p 值 < 0.05 稱為「顯著」，表示有證據違反該假設；p ≥ 0.05 表示沒有看到明顯違反。"),
+    diag_cases = paste0("依 Mardia 和 Box's M 是否顯著分成四種情況，",
+      "標「← 本資料」的那一列就是本資料的情況。"),
+    data_summary = paste0("每一列是某一類別在某個變數上的摘要：平均數、",
+      "標準差（資料散開的程度）、最小值、中位數、最大值。",
+      "同一個變數在不同類別的平均數差越多、標準差越小，單看這個變數時越能區分類別；",
+      "這是逐一變數的描述，不代表該變數在多變數模型中的獨立貢獻。"),
+    figures = "每張圖下方都有怎麼看的說明。"
+  )
+}
+
+# Title and how-to-read note placed below each figure.
+figure_notes <- function(result, figures = result$figures) {
+  R <- result$settings$repeats
+  imputed <- isTRUE(result$settings$missing_cells > 0)
+  dc <- result$data_checks
+  ratio <- if (is.data.frame(dc) && any(dc$check == "class_balance_ratio"))
+    dc$value[dc$check == "class_balance_ratio"][1] else NA
+  ratio_text <- if (is.finite(ratio)) paste0("本資料最多與最少類別的筆數比是 ",
+    trimws(formatC(ratio, digits = 3, format = "g")),
+    if (ratio <= 1.5) "，算是平衡。" else "，不太平衡，要以 Macro recall 為主、不要只看正確率。")
+    else ""
+  lda <- result$candidate_models[["lda"]]
+  ld_text <- if (is.null(lda)) "" else {
+    prop <- lda$svd^2 / sum(lda$svd^2)
+    if (length(prop) >= 2L) paste0(
+      "LDA 把所有 X 組合成新的座標軸（判別軸 LD1、LD2），讓不同類別盡量分開。",
+      "每個點是一筆資料，顏色代表類別。括號裡的百分比是各判別軸的相對判別資訊比例",
+      "（該軸的組間對組內變異比，占所有判別軸總和的比例）；本資料 LD1 占 ",
+      sprintf("%.1f%%", 100 * prop[1]),
+      if (prop[1] >= .9) "，判別資訊幾乎都集中在 LD1 這個方向（橫軸）" else "",
+      "。這個百分比不是分類正確率，也不是原始資料的變異解釋率（與主成分分析不同）。",
+      "點群分得越開、重疊越少，越容易分類；點群重疊的地方，通常也是容易誤判的類別。")
+    else paste0("只有一條判別軸 LD1。LDA 把所有 X 組合成這條軸，讓不同類別盡量分開；",
+      "每條曲線是一個類別在 LD1 上的分布。曲線分得越開、重疊越少，越容易分類；",
+      "重疊的區域就是容易誤判的資料。")
+  }
+  models <- if (is.data.frame(result$confusion_matrix))
+    toupper(unique(result$confusion_matrix$model)) else character()
+  rt <- range_text(result)
+  notes <- list(
+    "01_class_counts.png" = c("各類別筆數", paste0(
+      "長條高度是每個類別的筆數（數字標在長條內），用來看各類是否差不多多。", ratio_text,
+      if (imputed) "這張圖只算完整觀測，所以筆數可能比上面的表少。" else "")),
+    "02_boxplots.png" = c("各變數的分組箱形圖", paste0(
+      "每一小張是一個變數，每個箱子是一個類別。箱子涵蓋中間 50% 的資料，",
+      "中間的粗線是中位數，上下延伸的線是一般範圍，線外的圓點是可能的離群值。",
+      "同一張小圖中，不同類別的箱子位置差越多、重疊越少，代表單看這個變數時越能把類別分開；",
+      "箱子高矮差很多，代表各類散開的程度不同。",
+      if (length(rt)) paste0("本資料", if (imputed) "（完整觀測）" else "", "：",
+        paste(rt, collapse = "；"), "。") else "",
+      "這是逐一變數的比較，不代表該變數在多變數模型中的獨立貢獻最大。")),
+    "03_qq_by_class.png" = c("各類別、各變數的常態 Q-Q 圖", paste0(
+      "每一列是一個類別、每一欄是一個變數。橫軸是「如果資料是常態分布，理論上該在的位置」，",
+      "縱軸是實際資料。點大致貼著灰色直線，代表這個變數在這一類接近常態（鐘形）；",
+      "兩端明顯往上翹或往下彎，代表偏態或尾巴較厚。",
+      "點排成一階一階，可能與量測精度有關（例如只量到小數一位），不能僅據此判定是否符合常態。",
+      "這張圖一次只看一個變數；所有變數合起來是否接近多元常態，",
+      "需綜合檢定、圖形與資料特性評估，不能僅由單一檢定判定。")),
+    "04_pairs.png" = c("變數兩兩散布圖", paste0(
+      "每一小格是兩個變數的散布圖：該格所在列的變數當縱軸、所在欄的變數當橫軸",
+      "（變數名稱寫在對角線上），點的顏色代表類別（圖例在下方）。",
+      "不同顏色的點群分得越開，代表這兩個變數合起來越能區分類別。",
+      "各類點群的形狀、大小、傾斜方向越相似，LDA「各類散開方式相同」的假設越合理；",
+      "差很多時，QDA 可能較好。")),
+    "05_lda_scores.png" = c("LDA 判別分數圖", paste0(ld_text, "本圖以",
+      if (imputed) "完整觀測" else "全部資料",
+      "配適，只用來描述類別分得多開，不代表驗證表現。")),
+    "06_confusion_matrix.png" = c("混淆矩陣熱圖", paste0(
+      "內容與上面的混淆矩陣表相同（", R, " 次重複合併、列百分比），用顏色深淺表示比例",
+      if (length(models) > 1L) paste0("；左右依序是 ", paste(models, collapse = "、")) else "",
+      "。縱軸是真實類別、橫軸是預測類別；左上到右下的對角線是各類答對的比例，越深越好；",
+      "對角線以外有顏色的格子就是誤判的去向。")))
+  if (!length(figures))
+    return(data.frame(file = character(), title = character(), text = character()))
+  titles <- vapply(figures, function(f)
+    if (is.null(notes[[f]])) f else notes[[f]][1], "")
+  texts <- vapply(figures, function(f)
+    if (is.null(notes[[f]])) "" else notes[[f]][2], "")
+  # Number by file prefix (01_ -> 圖 1) so "圖 1–5" always means the same plots,
+  # even when the pairs plot is skipped.
+  num <- ifelse(grepl("^[0-9]{2}_", figures),
+                as.integer(substr(figures, 1, 2)), seq_along(figures))
+  data.frame(file = figures, title = paste0("圖 ", num, "：", titles),
+             text = texts, row.names = NULL, stringsAsFactors = FALSE)
+}
+
+# ---- Findings drawn from this data set (notes and conclusion) --------------
+# Every sentence below is built from numbers already computed in `result`;
+# nothing here fits a new model or runs a new test.
+
+# Dictionary description of a variable ("花瓣長度"), or its name.
+var_label <- function(result, v) {
+  vi <- result$variable_info
+  d <- rep(NA_character_, length(v))
+  if (is.data.frame(vi) && all(c("column", "description") %in% names(vi)))
+    d <- as.character(vi$description[match(v, vi$column)])
+  d <- trimws(sub("[（(].*$", "", d))
+  ifelse(is.na(d) | !nzchar(d), v, d)
+}
+var_label_full <- function(result, v) {
+  d <- var_label(result, v)
+  ifelse(d == v, v, paste0(d, "（", v, "）"))
+}
+
+purpose_text <- function(result) {
+  x <- result$settings$x
+  y <- result$settings$y
+  lev <- as.character(result$class_counts$class)
+  xl <- var_label(result, x)
+  x_part <- if (length(xl) > 8L) paste0(paste(head(xl, 8L), collapse = "、"), " 等")
+    else paste(xl, collapse = "、")
+  yd <- var_label(result, y)
+  paste0("本分析以 ", length(x), " 個預測變數（", x_part, "）預測 ",
+         if (yd == y) paste0(y, " 的 ") else paste0(y, "（", yd, "）的 "), length(lev), " 個類別",
+         if (length(lev) <= 8L) paste0("（", paste(lev, collapse = "、"), "）") else "",
+         "，並比較 LDA 與 QDA 的分類表現。")
+}
+
+# Per-variable ranges (min/max) from the group summaries: which class does
+# not overlap the others on a variable, and which class pairs overlap on all.
+range_findings <- function(result) {
+  s <- result$data_summary
+  empty <- list(sep = data.frame(), overlap_all = list(), nvar = 0L)
+  if (!is.data.frame(s) || !nrow(s)) return(empty)
+  cls <- unique(as.character(s$class))
+  vars <- unique(as.character(s$variable))
+  sep <- do.call(rbind, lapply(cls, function(cl) do.call(rbind, lapply(vars, function(v) {
+    own <- s[s$class == cl & s$variable == v, ]
+    oth <- s[s$class != cl & s$variable == v, ]
+    if (nrow(own) != 1L || !nrow(oth)) return(NULL)
+    if (own$max < min(oth$min))
+      data.frame(class = cl, variable = v, side = "below", own = own$max,
+                 other = min(oth$min), stringsAsFactors = FALSE)
+    else if (own$min > max(oth$max))
+      data.frame(class = cl, variable = v, side = "above", own = own$min,
+                 other = max(oth$max), stringsAsFactors = FALSE)
+    else NULL
+  }))))
+  pairs <- if (length(cls) >= 2L) utils::combn(cls, 2L, simplify = FALSE) else list()
+  overlap_all <- Filter(function(pr) all(vapply(vars, function(v) {
+    a <- s[s$class == pr[1] & s$variable == v, ]
+    b <- s[s$class == pr[2] & s$variable == v, ]
+    a$max >= b$min && b$max >= a$min
+  }, logical(1))), pairs)
+  list(sep = if (is.null(sep)) data.frame() else sep,
+       overlap_all = overlap_all, nvar = length(vars))
+}
+
+range_text <- function(result) {
+  rf <- range_findings(result)
+  num <- function(v) trimws(formatC(v, digits = 4, format = "g"))
+  out <- character()
+  if (nrow(rf$sep)) for (cl in unique(rf$sep$class)) {
+    z <- rf$sep[rf$sep$class == cl, ]
+    ex <- z[1, ]
+    vl <- paste(var_label_full(result, z$variable), collapse = "、")
+    out <- c(out, paste0(cl, " 在", if (grepl("^[A-Za-z0-9]", vl)) " " else "", vl,
+      if (grepl("[A-Za-z0-9._]$", vl)) " " else "",
+      "的範圍與其他類別完全沒有重疊（例如 ", ex$variable, "：", cl,
+      if (ex$side == "below") paste0(" 最大 ", num(ex$own), "，其他類別最小 ", num(ex$other))
+      else paste0(" 最小 ", num(ex$own), "，其他類別最大 ", num(ex$other)), "）"))
+  }
+  if (length(rf$overlap_all)) {
+    pr <- head(rf$overlap_all, 3L)
+    out <- c(out, paste0(paste(vapply(pr, paste, "", collapse = " 與 "), collapse = "、"),
+      " 在全部 ", rf$nvar, " 個變數上的範圍都有重疊"))
+  }
+  out
+}
+
+# Class-level results of the models that completed every repeat.
+class_findings <- function(result) {
+  m <- result$metrics
+  done <- as.character(m$model[m$status == "complete"])
+  cr <- result$class_recall
+  cr <- if (is.data.frame(cr)) cr[cr$model %in% done, , drop = FALSE] else data.frame()
+  cm <- result$confusion_matrix
+  cm <- if (is.data.frame(cm)) cm[cm$model %in% done, , drop = FALSE] else data.frame()
+  lev <- result$settings$class_levels
+  perfect <- lev[vapply(lev, function(cl) {
+    z <- cr[cr$class == cl, , drop = FALSE]
+    nrow(z) > 0L && all(abs(z$recall - 1) < 1e-12 & abs(z$precision - 1) < 1e-12)
+  }, logical(1))]
+  list(done = done, cr = cr, cm = cm, perfect = perfect, lev = lev)
+}
+
+# Three kinds of sentence: perfectly classified classes, where the errors
+# go, and per-class recall differences between the two models.
+misclass_text <- function(result) {
+  f <- class_findings(result)
+  out <- list(perfect = character(), errors = character(), recall = character())
+  if (!length(f$done) || !nrow(f$cm)) return(out)
+  who <- if (length(f$done) == 2L) "兩種方法" else toupper(f$done)
+  if (length(f$perfect))
+    out$perfect <- paste0(who, "對 ", paste(f$perfect, collapse = "、"),
+                          " 的召回率與精確率皆為 100%。")
+  truth <- as.character(f$cm$truth)
+  pred <- as.character(f$cm$predicted)
+  off <- truth != pred & f$cm$row_pct > 0
+  if (!any(off)) {
+    out$errors <- paste0(who, "都沒有任何誤判。")
+  } else {
+    key <- ifelse(truth < pred, paste(truth, pred, sep = "\u0001"),
+                  paste(pred, truth, sep = "\u0001"))[off]
+    tot <- tapply(f$cm$row_pct[off], key, sum)
+    pr <- strsplit(names(tot)[which.max(tot)], "\u0001", fixed = TRUE)[[1]]
+    cell <- function(mod, a, b) sprintf("%.1f%%", 100 * f$cm$row_pct[
+      f$cm$model == mod & truth == a & pred == b])
+    detail <- paste(vapply(f$done, function(mod) paste0(toupper(mod), "：",
+      pr[1], " 被誤判為 ", pr[2], " ", cell(mod, pr[1], pr[2]), "，",
+      pr[2], " 被誤判為 ", pr[1], " ", cell(mod, pr[2], pr[1])), ""), collapse = "；")
+    out$errors <- paste0(if (length(tot) == 1L) "誤判全部發生在 " else "誤判比例最高的是 ",
+      pr[1], " 與 ", pr[2], " 之間（", detail, "）",
+      if (length(tot) > 1L) "；其他誤判見混淆矩陣" else "", "。")
+  }
+  if (length(f$done) == 2L) {
+    rec <- function(mod, cl) f$cr$recall[f$cr$model == mod & f$cr$class == cl]
+    diffs <- unlist(lapply(f$lev, function(cl) {
+      a <- rec("lda", cl); b <- rec("qda", cl)
+      if (length(a) != 1L || length(b) != 1L || abs(a - b) < 1e-12) return(NULL)
+      hi <- if (a > b) c("LDA", "QDA") else c("QDA", "LDA")
+      paste0(hi[1], " 對 ", cl, " 的召回率為 ", pct_text(max(a, b)), "，高於 ",
+             hi[2], " 的 ", pct_text(min(a, b)))
+    }))
+    out$recall <- if (length(diffs)) paste0(paste(diffs, collapse = "；"), "。")
+      else "兩種方法各類別的召回率相同。"
+  }
+  out
+}
+
+# What the diagnostics say, and how they relate to the validated choice.
+diagnostic_outcome <- function(result, alpha = 0.05) {
+  d <- result$diagnostics
+  ok <- d$status %in% c("computed", "computed_with_warning") & is.finite(d$p_value)
+  mard <- grepl("^Mardia", d$test)
+  box <- d$test == "Box M"
+  fp <- function(p) ifelse(p < 0.001, formatC(p, digits = 2, format = "e"),
+                           sprintf("%.3f", p))
+  full <- character(); short <- character()
+  if (any(mard & ok)) {
+    sig <- unique(d$group[mard & ok & d$p_value < alpha])
+    if (!length(sig)) {
+      r <- range(d$p_value[mard & ok])
+      full <- c(full, paste0("Mardia 檢定：", length(unique(d$group[mard & ok])),
+        " 個類別的偏態與峰態均未達顯著（p 值 ", fp(r[1]), "–", fp(r[2]),
+        "）。這只表示沒有看到明顯違反，不代表已證明多元常態成立。"))
+      short <- c(short, "Mardia 檢定在各類別均未達顯著，但這不代表已證明多元常態成立")
+    } else {
+      full <- c(full, paste0("Mardia 檢定：", paste(sig, collapse = "、"),
+        " 達顯著（p < ", alpha, "），這些類別的多元常態假設受到質疑，算出的機率要保守解讀。"))
+      short <- c(short, paste0("Mardia 檢定在 ", paste(sig, collapse = "、"),
+        " 達顯著，這些類別的多元常態假設受到質疑"))
+    }
+  } else {
+    full <- c(full, "Mardia 檢定未能完成，無法評估多元常態。")
+    short <- c(short, "Mardia 檢定未能完成")
+  }
+  box_sig <- NA
+  if (any(box & ok)) {
+    i <- which(box & ok)[1]
+    box_sig <- d$p_value[i] < alpha
+    stat <- paste0("χ² 近似統計量 ", trimws(formatC(d$statistic[i], digits = 4, format = "g")),
+      if (grepl("^df = ", d$note[i])) paste0("，", d$note[i]) else "",
+      "，p = ", fp(d$p_value[i]))
+    full <- c(full, if (box_sig) paste0("Box's M 顯著（", stat,
+        "），表示「各類共變異數矩陣相同」的假設受到質疑；但 Box's M 對非常態敏感，",
+        "樣本量增加時也可能偵測到較小的差異，應結合驗證表現解讀。")
+      else paste0("Box's M 未達顯著（", stat,
+        "），沒有看到各類共變異數不同的明顯證據，但也不代表已證明相同。"))
+    short <- c(short, if (box_sig) "Box's M 顯著，「各類共變異數相同」的假設受到質疑"
+                      else "Box's M 未達顯著")
+  } else {
+    full <- c(full, "Box's M 未能完成，無法評估各類共變異數是否相同。")
+    short <- c(short, "Box's M 未能完成")
+  }
+  m <- result$metrics
+  both <- all(c("lda", "qda") %in% m$model[m$status == "complete"])
+  sel <- if (is.null(result$selection)) "none" else result$selection
+  link <- character(); link_short <- character()
+  if (both && !is.na(box_sig)) {
+    l <- pct_text(m$macro_recall[m$model == "lda"])
+    q <- pct_text(m$macro_recall[m$model == "qda"])
+    K <- length(result$settings$class_levels)
+    p <- length(result$settings$x)
+    extra <- (K - 1L) * p * (p + 1L) / 2L
+    link <- switch(sel,
+      lda_better = if (box_sig) paste0("但 QDA 的實際驗證表現沒有更好（平均 Macro recall：QDA ",
+          q, "，LDA ", l, "），因此仍依交叉驗證結果選擇 LDA。一種可能的解釋是：QDA 比 LDA 多估計 ",
+          extra, " 個參數，允許各類共變異數不同的好處，可能被估計誤差抵消。")
+        else paste0("LDA 的驗證表現也較高（平均 Macro recall：LDA ", l, "，QDA ", q,
+          "），與等共變異數假設沒有明顯衝突。"),
+      qda_better = if (box_sig) paste0("QDA 的驗證表現也較高（平均 Macro recall：QDA ", q,
+          "，LDA ", l, "），方向與 Box's M 一致；但選模仍依交叉驗證結果，不依 Box's M。")
+        else paste0("雖然 Box's M 未達顯著，QDA 的驗證表現較高（平均 Macro recall：QDA ",
+          q, "，LDA ", l, "）；選模依交叉驗證結果。"),
+      tie_prefer_lda = paste0("兩種方法的驗證表現相同（平均 Macro recall ", l,
+        "），依規則選較簡單的 LDA。"),
+      character())
+    link_short <- switch(sel,
+      lda_better = if (box_sig) "但 QDA 的實際驗證表現沒有更好，因此仍依交叉驗證結果選擇 LDA；診斷只提醒 LDA 的等共變異數假設可能不完全成立"
+        else "LDA 的驗證表現也較高，與等共變異數假設沒有明顯衝突",
+      qda_better = if (box_sig) "QDA 的驗證表現也較高，方向與 Box's M 一致，但選模仍依交叉驗證"
+        else "QDA 的驗證表現較高，選模依交叉驗證",
+      tie_prefer_lda = "兩種方法的驗證表現相同，依規則選 LDA",
+      character())
+  }
+  list(full = c(full, link, "診斷用來說明假設是否合理，不改變選模規則。"),
+       short = paste0(paste(c(short, link_short), collapse = "。"),
+                      "。詳細數字見「假設診斷」一節。"))
+}
+
+# Final chapter: performance, why this model, where errors go, what the
+# diagnostics mean for the result, and limitations.
+conclusion_lines <- function(result) {
+  m <- result$metrics
+  N <- sum(result$class_counts$n)
+  R <- result$settings$repeats
+  sel <- if (is.null(result$selection)) "none" else result$selection
+  done <- as.character(m$model[m$status == "complete"])
+  get <- function(model, col) m[[col]][m$model == model]
+  wins <- result$selection_wins
+  both <- all(c("lda", "qda") %in% done)
+  winner <- if (sel %in% c("lda_better", "qda_better", "only_feasible"))
+    result$cv_leader else if (sel == "tie_prefer_lda") "lda" else NA_character_
+  one <- function(model) paste0(toupper(model), " 平均答對 ",
+    sprintf("%.1f", get(model, "correct_mean")), " 筆（範圍 ", get(model, "correct_min"),
+    "–", get(model, "correct_max"), "）")
+  perf <- character(); why <- character(); small <- TRUE
+  if (both) {
+    w <- if (is.na(winner)) "lda" else winner
+    o <- setdiff(c("lda", "qda"), w)
+    dpp <- 100 * (get(w, "macro_recall") - get(o, "macro_recall"))
+    dc <- get(w, "correct_mean") - get(o, "correct_mean")
+    small <- abs(dpp) < 2
+    perf <- c(
+      paste0("LDA 平均 Macro recall 為 ", pct_text(get("lda", "macro_recall")), "，QDA 為 ",
+        pct_text(get("qda", "macro_recall")),
+        if (abs(dpp) > 1e-9) paste0("，相差 ", sprintf("%.2f", abs(dpp)), " 個百分點") else "，兩者相同",
+        if (small) "，兩種方法的表現接近。" else "。"),
+      paste0("以答對筆數來看，", one(w), "，", one(o), "；",
+        if (dc > 1e-9) paste0(toupper(w), " 每次 ", N, " 筆平均多答對 ", sprintf("%.1f", dc), " 筆。")
+        else if (dc < -1e-9) paste0(toupper(w), " 平均答對筆數反而少 ", sprintf("%.1f", -dc),
+          " 筆（Macro recall 讓每一類一樣重要，與答對筆數不一定同向）。")
+        else "兩者平均答對筆數相同。"),
+      paste0(R, " 次重複中，", toupper(w), " 較高 ", wins[[w]], " 次、相同 ", wins[["tie"]],
+        " 次、較低 ", wins[[o]], " 次。"))
+  } else if (length(done) == 1L) {
+    perf <- paste0("只有 ", toupper(done), " 完成全部 ", R, " 次驗證：平均 Macro recall ",
+      pct_text(get(done, "macro_recall")), "，", one(done), "。另一個方法驗證不完整或無法估計",
+      "（原因見「模型警告與錯誤」），所以無法比較兩種方法。")
+  } else {
+    perf <- "沒有方法完成全部驗證，本報告不提供分類表現的結論；原因見「模型警告與錯誤」。"
+  }
+  if (sel %in% c("lda_better", "qda_better")) {
+    W <- toupper(winner); O <- toupper(setdiff(c("lda", "qda"), winner))
+    why <- c(paste0(W, " 在本次交叉驗證中", if (small) "略優" else "較優",
+        "，因此依既定規則（", R, " 次的平均 Macro recall 較高者勝出）選用 ", W, "。"),
+      paste0("這是本資料、本次驗證設計下的比較，不是統計檢定；不代表 ", W, " 顯著優於 ", O,
+        "，也不代表 ", W, " 在其他資料上普遍較好。",
+        if (wins[[tolower(O)]] == 0L) paste0(R, " 次重複中 ", O, " 沒有一次較高，方向一致。")
+        else paste0(O, " 也在 ", wins[[tolower(O)]], " 次重複中較高，結果會隨切分改變。")))
+  } else if (sel == "tie_prefer_lda") {
+    why <- paste0("兩者 ", R, " 次的平均 Macro recall 相同，依規則選較簡單的 LDA；這不代表兩者完全等效。")
+  } else if (sel == "only_feasible") {
+    why <- paste0("只有 ", toupper(winner), " 完成驗證，所以選 ", toupper(winner),
+                  "；這不是兩種方法比較後的結果。")
+  } else {
+    why <- "本次沒有完整的驗證結果，不選擇方法。"
+  }
+  if (!is.null(result$final_model) && !is.na(winner))
+    why <- c(why, paste0("選定後以全部 ", N, " 筆資料重新配適 ", toupper(winner),
+                         "，作為最終模型（final_model.rds）。"))
+  mt <- misclass_text(result)
+  rt <- range_text(result)
+  imputed <- isTRUE(result$settings$missing_cells > 0)
+  mis <- c(paste0("- ", c(mt$perfect, mt$errors, mt$recall)),
+    if (length(rt)) paste0("- 描述統計", if (imputed) "（以完整觀測計算）" else "", "中，",
+      paste(rt, collapse = "；"),
+      "。這些是逐一變數的描述，有助於理解誤判集中在哪些類別，但不代表個別變數在模型中的獨立貢獻最大。"))
+  if (length(mis) == 0L || !length(done)) mis <- "沒有完整的驗證結果，無法判斷哪些類別容易誤判。"
+  dc_rows <- result$data_checks
+  dup <- if (is.data.frame(dc_rows) && any(dc_rows$check == "duplicate_rows"))
+    dc_rows$value[dc_rows$check == "duplicate_rows"][1] else 0
+  lim <- paste0("- ", c(
+    if (length(done)) c(
+      paste0(R, " 次重複使用的是同一批 ", N, " 筆觀測，只是切分方式不同，不代表有 ",
+             format(N * R, big.mark = ","), " 筆獨立樣本。"),
+      "Macro recall 標準差是不同切分之間的變動，不是新資料預測表現的信賴區間。",
+      "同一組交叉驗證同時用於比較與選擇模型，分數不是獨立測試表現，可能略為樂觀。"),
+    "尚無外部資料驗證；推廣到其他資料來源或採集條件，仍需進一步確認。",
+    "本報告沒有計算變數重要性或判別係數的不確定性，不宜據此判斷哪個變數最重要。",
+    if (isTRUE(dup > 0)) paste0("資料中有 ", dup, " 筆與其他列的 Y 和 X 完全相同，已保留；",
+      "數值相同不必然代表同一個體或標本，是否為重複登錄仍需依原始紀錄確認。"),
+    if (imputed) "X 的空格以各訓練折的中位數補值；補值方式可能影響結果，本報告未與其他補值方式比較。",
+    "本版處理獨立觀測與數值型預測變數，使用重複分層交叉驗證（固定 5 折、10 次）。",
+    "各類別診斷有多個檢定，p 值以診斷用途呈現，未進行多重比較校正。"))
+  c("## 結論與討論", "",
+    "### 兩種方法的分類表現", "", perf, "",
+    paste0("### ", if (is.na(winner)) "選模結果" else paste0("為什麼選擇 ", toupper(winner))), "",
+    why, "",
+    "### 哪些類別容易誤判", "", mis, "",
+    "### 假設診斷對結果的影響", "", diagnostic_outcome(result)$short, "",
+    "### 限制", "", lim)
+}
+
+make_report <- function(result) {
+  needed <- c("settings", "metrics", "status", "model_status",
+              "diagnostic_status", "diagnostics", "data_summary", "class_counts")
+  if (!all(needed %in% names(result))) stop("Use run_pipeline() to assemble results.")
+  state <- function(x) switch(x,
+    completed = "完成", partial = "部分完成",
+    blocked = "待處理", failed = "失敗", x)
+  guide <- report_guides(result)
+  mt <- misclass_text(result)
+  observed_recall <- if (length(c(mt$perfect, mt$recall)))
+    paste0("本資料：", paste(c(mt$perfect, mt$recall), collapse = "")) else character()
   leader <- selection_text(result)
   dn <- diagnostic_notes(result$diagnostics)
   issues <- if (is.data.frame(result$issues) && nrow(result$issues)) {
@@ -875,13 +1428,13 @@ make_report <- function(result) {
     intro <- c(intro, paste0("- 資料說明：", result$dataset_description))
   variable_block <- if (is.data.frame(result$variable_info) &&
                         nrow(result$variable_info)) {
-    c("", "### 變數介紹", "", markdown_table(result$variable_info))
+    c("", "### 變數介紹", "", guide$variable_info, "",
+      markdown_table(variable_info_display(result)))
   } else character()
   check_block <- if (is.data.frame(result$data_checks) &&
                      nrow(result$data_checks)) {
-    c("## 資料檢查", "",
-      "以下只做標記與說明，不刪除或轉換任何資料（缺失值處理另見下一節）。", "",
-      markdown_table(result$data_checks), "")
+    c("## 資料檢查", "", guide$data_checks, "",
+      markdown_table(data_checks_display(result)), "")
   } else character()
   impute_block <- if (identical(result$settings$impute, "median") &&
                        is.data.frame(result$imputation) && nrow(result$imputation)) {
@@ -889,36 +1442,35 @@ make_report <- function(result) {
       paste0("X 共有 ", result$settings$missing_cells, " 個空格。依使用者決定，",
              "在每一份練習資料內計算各欄中位數，再用這個中位數補該輪的練習與考試資料；",
              "考試資料不參與計算，避免資料洩漏。最終模型以全部資料的中位數補值。"),
-      "假設診斷、描述統計與探索圖（01–05）只使用沒有空格的完整觀測；混淆矩陣（06）來自交叉驗證，包含全部觀測。",
+      "假設診斷、描述統計與探索圖（圖 1–5）只使用沒有空格的完整觀測；混淆矩陣來自交叉驗證，包含全部觀測。",
       paste0("下表摘要 ", nrow(result$imputation) / length(result$settings$x),
-             " 輪練習資料的中位數；每一輪的完整紀錄見 `imputation.csv`。"), "",
+             " 輪練習資料的中位數：每個變數在各輪用到的中位數最小與最大值，",
+             "以及每輪平均補了幾格；每一輪的完整紀錄見 `imputation.csv`。"), "",
       markdown_table(imputation_summary(result)), "")
   } else character()
   repeat_block <- if (is.data.frame(result$repeat_metrics) &&
                       nrow(result$repeat_metrics)) {
-    c("## 每一次重複的結果", "",
-      "每一次重複都把資料重新隨機分成 5 份；下表看得出分數隨切分變動多少，以及哪個方法較常勝出。", "",
+    c("## 每一次重複的結果", "", guide$repeats, "",
       markdown_table(repeat_table(result)), "")
   } else character()
   cm_block <- if (is.data.frame(result$confusion_matrix) &&
                   nrow(result$confusion_matrix)) {
-    unlist(lapply(unique(result$confusion_matrix$model), function(m) c(
-      paste0("### 混淆矩陣：", toupper(m)), "",
-      markdown_table(confusion_percent(result, m)), "")))
+    c(guide$confusion[1], "", guide$confusion[-1], misclass_text(result)$errors, "",
+      unlist(lapply(unique(result$confusion_matrix$model), function(m) c(
+        paste0("### 混淆矩陣：", toupper(m)), "",
+        markdown_table(confusion_percent(result, m)), ""))))
   } else character()
-  class_tab <- result$class_recall
-  if (is.data.frame(class_tab) && nrow(class_tab)) {
-    class_tab$model <- toupper(class_tab$model)
-    for (nm in c("recall", "precision", "f1")) class_tab[[nm]] <- pct(class_tab[[nm]])
-  }
   figure_block <- if (length(result$figures)) {
-    c("## 圖檔", "", paste0("- `figures/", result$figures, "`"),
-      "", paste0("LDA 判別分數圖以",
-        if (isTRUE(result$settings$missing_cells > 0)) "完整觀測" else "全部資料",
-        "配適，僅供描述類別分離，不代表驗證表現。"), "")
+    fn <- figure_notes(result)
+    c("## 圖", "", guide$figures, "",
+      unlist(lapply(seq_len(nrow(fn)), function(i) c(
+        paste0("### ", fn$title[i]), "",
+        paste0("- `figures/", fn$file[i], "`"), "",
+        fn$text[i], ""))))
   } else character()
   c(
     "# LDA／QDA 分析報告", "",
+    purpose_text(result), "",
     paste0("整體狀態：", state(result$status), "。"),
     paste0("模型分析：", state(result$model_status),
            "；假設診斷：", state(result$diagnostic_status), "。"), "",
@@ -936,41 +1488,37 @@ make_report <- function(result) {
     "- 先驗機率：由各訓練折的類別比例估計。",
     if (identical(result$settings$impute, "median") && result$settings$missing_cells > 0)
       "- 資料處理：未刪除觀測值或轉換變數；缺失值依使用者同意在各練習資料內補中位數。"
-    else "- 資料處理：未刪除觀測值、插補缺失值或轉換變數。", "",
-    markdown_table(result$class_counts),
+    else "- 資料處理：未刪除觀測值、插補缺失值或轉換變數。",
+    paste0("- 軟體：", result$settings$R, "；MASS ", result$settings$MASS,
+           "；診斷：", result$settings$diagnostic_method), "",
+    "### 各類別筆數", "", guide$class_counts, "",
+    markdown_table(class_counts_display(result)),
     variable_block, "",
     check_block,
     impute_block,
-    "## 模型驗證表現", "",
-    markdown_table(metric), "", leader, "",
-    paste0("表中分數是 ", result$settings$repeats,
-           " 次重複的平均；每次重複中，每筆觀測恰好被預測一次。",
+    "## 模型驗證表現", "", guide$metrics, "",
+    markdown_table(metrics_display(result)), "", leader, "",
+    paste0("每次重複中，每筆觀測恰好被預測一次。",
            "必須完成全部重複的模型才參加比較，驗證不完整的模型不提供分數。"),
     "這組交叉驗證同時用於比較模型，分數不是獨立測試表現。", "",
     repeat_block,
-    "## 各類別表現", "",
-    paste0("把 ", result$settings$repeats, " 次重複的預測合併計算（每筆觀測被預測 ",
-           result$settings$repeats, " 次）。"), "",
-    markdown_table(class_tab), "",
-    "混淆矩陣以列百分比呈現：每一列是一個真實類別，數字是被預測成各類別的比例。", "",
+    "## 各類別表現", "", guide$class_recall, "",
+    observed_recall, "",
+    markdown_table(class_recall_display(result)), "",
     cm_block,
-    "## 假設診斷", "",
-    markdown_table(diag), "",
+    "## 假設診斷", "", guide$diagnostics, "",
+    markdown_table(diagnostics_display(result)), "",
     "檢定不顯著不代表假設已被證明；無法估計時，不產生替代 p 值。",
-    "Box's M 對非常態很敏感，且樣本大時幾乎必然顯著。",
+    "Box's M 對非常態很敏感；樣本量增加時可能偵測到較小的差異，應結合驗證表現解讀。",
     "診斷結果用於說明適用性，不直接依單一 p 值決定 LDA／QDA。", "",
-    "### Mardia 與 Box's M 的合併解讀", "",
+    "### Mardia 與 Box's M 的合併解讀", "", guide$diag_cases, "",
     markdown_table(dn$table), "", dn$notes, "",
-    "## 分組描述統計", "",
-    markdown_table(result$data_summary), "",
+    "### 對照實際驗證結果", "", diagnostic_outcome(result)$full, "",
+    "## 分組描述統計", "", guide$data_summary, "",
+    markdown_table(data_summary_display(result)), "",
     figure_block,
     "## 模型警告與錯誤", "", issues, "",
-    "## 執行範圍與限制", "",
-    "本版處理獨立觀測與數值型預測變數，使用重複分層交叉驗證（固定 5 折、10 次）。",
-    "各類別診斷有多個檢定，p 值以診斷用途呈現，未進行多重比較校正。", "",
-    paste0("R：", result$settings$R,
-           "；MASS：", result$settings$MASS,
-           "；診斷：", result$settings$diagnostic_method)
+    conclusion_lines(result)
   )
 }
 
@@ -1196,8 +1744,9 @@ write_report_qmd <- function(result, out, title = "LDA／QDA 分析報告") {
       paste0("  impute = ", q(if (is.null(result$settings$impute)) "none" else
                                result$settings$impute), ","),
       paste0("  dataset_description = ", q(result$dataset_description), ")"),
-      "pct <- function(v) ifelse(is.na(v), \"未計算\", sprintf(\"%.2f%%\", 100 * v))"),
+      "guide <- report_guides(result)"),
       "label: setup"),
+    "`r purpose_text(result)`", "",
     "## 資料與設定", "",
     "`r if (!is.null(result$dataset_description)) result$dataset_description`", "",
     "- 要分類的欄位（Y）：`r result$settings$y`",
@@ -1205,56 +1754,65 @@ write_report_qmd <- function(result, out, title = "LDA／QDA 分析報告") {
     "- 樣本數：`r sum(result$class_counts$n)`",
     "- 驗證方式：把資料分成 `r result$settings$folds` 份，每次 `r result$settings$folds - 1` 份練習、1 份考試，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 `r result$settings$repeats` 次；隨機種子 `r result$settings$seed`",
     "",
-    chunk("knitr::kable(result$class_counts, col.names = c(\"類別\", \"筆數\"))"),
-    chunk("if (!is.null(result$variable_info)) knitr::kable(result$variable_info)"),
-    "## 資料檢查", "", "只做標記，沒有刪除、補值或轉換任何資料。", "",
-    chunk("knitr::kable(result$data_checks)"),
+    "### 各類別筆數", "", "`r guide$class_counts`", "",
+    chunk("knitr::kable(class_counts_display(result))"),
+    chunk(c("if (!is.null(result$variable_info)) {",
+            "  cat(\"### 變數介紹\\n\\n\", guide$variable_info, \"\\n\\n\")",
+            "  print(knitr::kable(variable_info_display(result)))",
+            "}"), "results: asis"),
+    "## 資料檢查", "", "`r guide$data_checks`", "",
+    chunk("knitr::kable(data_checks_display(result))"),
     chunk(c("if (identical(result$settings$impute, \"median\") && nrow(result$imputation)) {",
-            "  cat(\"### 缺失值處理\\n\\n在每一份練習資料內計算中位數再補值，考試資料不參與計算。\\n\\n\")",
+            "  cat(\"### 缺失值處理\\n\\n在每一份練習資料內計算中位數再補值，考試資料不參與計算。\",",
+            "      \"下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。\\n\\n\")",
             "  print(knitr::kable(imputation_summary(result), digits = 4))",
             "  cat(\"\\n完整紀錄（每一輪、每個變數）見 imputation.csv。\\n\")",
             "}"), "results: asis"),
     "## 假設診斷（參考用）", "",
-    "Mardia 檢查每一類的資料是否接近常態分布；Box's M 檢查各類資料的分散程度是否相同。",
+    "`r guide$diagnostics`", "",
     "這兩個檢定的結果寫進報告當參考，**不用來選擇 LDA 或 QDA**。", "",
-    chunk(c("d <- result$diagnostics",
-            "d$statistic <- signif(d$statistic, 4)",
-            "d$p_value <- signif(d$p_value, 4)",
+    chunk(c("d <- diagnostics_display(result)",
+            "d[[\"統計量\"]] <- signif(d[[\"統計量\"]], 4)",
+            "d[[\"p 值\"]] <- signif(d[[\"p 值\"]], 4)",
             "knitr::kable(d)")),
-    "### Mardia 與 Box's M 的合併解讀", "",
+    "### Mardia 與 Box's M 的合併解讀", "", "`r guide$diag_cases`", "",
     chunk(c("dn <- diagnostic_notes(result$diagnostics)",
             "print(knitr::kable(dn$table))",
             "cat(\"\\n\", paste(dn$notes, collapse = \"\\n\\n\"), \"\\n\")"),
           "results: asis"),
+    "### 對照實際驗證結果", "",
+    chunk("cat(diagnostic_outcome(result)$full, sep = \"\\n\\n\")", "results: asis"),
     "## 模型比較與選擇", "",
-    "下表是 `r result$settings$repeats` 次重複的平均；必須完成全部重複的方法才參加比較。", "",
-    chunk(c("m <- result$metrics",
-            "for (k in c(\"coverage\", \"accuracy\", \"macro_recall\", \"macro_recall_sd\", \"macro_f1\")) m[[k]] <- pct(m[[k]])",
-            "knitr::kable(m, digits = 1)")),
+    "`r guide$metrics`必須完成全部重複的方法才參加比較。", "",
+    chunk("knitr::kable(metrics_display(result))"),
     chunk("cat(selection_text(result), sep = \"\\n\\n\")", "results: asis"),
-    "### 每一次重複的結果", "",
+    "### 每一次重複的結果", "", "`r guide$repeats`", "",
     chunk("knitr::kable(repeat_table(result))"),
-    "### 各類別表現（`r result$settings$repeats` 次合併）", "",
-    chunk(c("cr <- result$class_recall",
-            "for (k in c(\"recall\", \"precision\", \"f1\")) cr[[k]] <- pct(cr[[k]])",
-            "knitr::kable(cr)")),
+    "### 各類別表現（`r result$settings$repeats` 次合併）", "", "`r guide$class_recall`", "",
+    chunk(c("mt <- misclass_text(result)",
+            "if (length(c(mt$perfect, mt$recall)))",
+            "  cat(\"本資料：\", mt$perfect, mt$recall, \"\\n\", sep = \"\")"), "results: asis"),
+    chunk("knitr::kable(class_recall_display(result))"),
     "### 混淆矩陣（`r result$settings$repeats` 次合併，列百分比）", "",
+    "`r paste(c(guide$confusion, misclass_text(result)$errors), collapse = '')`", "",
     chunk(c("for (m in unique(result$confusion_matrix$model)) {",
             "  cat(\"\\n**\", toupper(m), \"**\\n\\n\", sep = \"\")",
             "  print(knitr::kable(confusion_percent(result, m)))",
             "}"), "results: asis"),
-    "## 圖", "",
+    "## 分組描述統計", "", "`r guide$data_summary`", "",
+    chunk("knitr::kable(data_summary_display(result), digits = 4)"),
+    "## 圖", "", "`r guide$figures`", "",
     chunk(c("figs <- save_figures(result, data, \"figures_qmd\")",
-            "knitr::include_graphics(file.path(\"figures_qmd\", figs))")),
+            "fn <- figure_notes(result, figs)",
+            "for (i in seq_len(nrow(fn)))",
+            "  cat(\"### \", fn$title[i], \"\\n\\n![](figures_qmd/\", fn$file[i], \")\\n\\n\",",
+            "      fn$text[i], \"\\n\\n\", sep = \"\")"), "results: asis"),
     "## 模型警告與錯誤", "",
     chunk(c("if (nrow(result$issues)) knitr::kable(result$issues) else",
             "  cat(\"沒有記錄到警告或錯誤。\")"), "results: asis"),
-    "## 範圍與限制", "",
-    "- 本版只處理每一筆都是不同對象的資料，以及數值型的判斷欄位；驗證固定為分層 5-fold、重複 10 次。",
-    "- 交叉驗證同時用來比較兩種方法，分數不是獨立測試的表現。",
-    "- 檢定不顯著不代表假設已被證明；各組有多個檢定，p 值未做多重比較校正。", "",
     "## 執行環境", "",
-    chunk("sessionInfo()"))
+    chunk("sessionInfo()"),
+    chunk("cat(conclusion_lines(result), sep = \"\\n\")", "results: asis"))
   path <- file.path(out, "report.qmd")
   writeLines(enc2utf8(qmd), path, useBytes = TRUE)
   invisible(path)

@@ -140,8 +140,13 @@ write_report_html(result, "output/iris-001")                   # report.html（�
 1. **資料與設定**：資料說明、Y 與各類別筆數、X 清單、驗證方式、主要指標、先驗機率；變數介紹表（說明、單位、角色、型態、缺失數）。
 2. **資料檢查**（只標記、不修改）：重複列、類別比例、$n_k\le p$ 的類別、組內零變異、X 是否滿秩、組內 1.5×IQR 離群列數。觸發問題時依 `decision-tree.md` 區分「可繼續但要揭露」「需使用者決定」「無法建模」。
 3. **模型驗證表現**：LDA／QDA 的狀態、10 次重複的平均正確率、平均 Macro recall（含標準差）、平均 Macro-F1、平均答對筆數與範圍；每一次重複的結果與勝出次數；各類別 recall／precision／F1 與混淆矩陣（10 次合併，以百分比呈現）。
-4. **假設診斷**：各組 Mardia 偏態與峰態、Box's M（df = $p(p+1)(K-1)/2$）；兩者的合併解讀表（見下）與自動註記。
-5. **分組描述統計**、**圖檔**、**警告與錯誤**、**範圍與限制**。
+4. **假設診斷**：各組 Mardia 偏態與峰態、Box's M（df = $p(p+1)(K-1)/2$）；兩者的合併解讀表（見下）與自動註記；最後「對照實際驗證結果」，交代診斷與選模結果的關係（`diagnostic_outcome()`）。
+5. **分組描述統計**、**圖**（圖 1–6，各有標題）、**警告與錯誤**。
+6. **結論與討論**（最後一章，`conclusion_lines()`）：兩種方法的分類表現、為什麼選這個方法、哪些類別容易誤判、假設診斷對結果的影響、限制（原本的「範圍與限制」併入這裡）。
+
+每張表**上方**有「怎麼看這張表」的說明（`report_guides()`），每張圖**下方**有圖說（`figure_notes()`）；欄名與資料檢查項目都用中文顯示（CSV 檔維持英文欄名）。混淆矩陣說明會從本資料挑誤判比例最高的一格當例子。報告開頭有一句分析目的（`purpose_text()`）。
+
+結論的措辭固定：平均 Macro recall 相差 < 2 個百分點寫「略優」，否則寫「較優」，一律接「因此依既定規則選用」，並註明不是統計檢定、不代表顯著優於或普遍較好。類別層級的觀察只用已計算的召回率、精確率、混淆矩陣與描述統計的範圍（某類在某變數的範圍與其他類完全不重疊），並註明是逐一變數的描述，不代表獨立貢獻；不寫變數重要性、係數、信賴區間或沒算過的顯著性。AI 向使用者總結時沿用同樣的說法。
 
 腳本遇到 Y 有空格、X 有空格（未加 `--impute median`）、非有限值、非數值 X、類別數 < 2、某類少於 5 筆時會**停止並說明原因**，不會自行刪除或插補；依上方關卡 D、E 的方式處理，取得使用者決定後再跑。
 
@@ -229,7 +234,7 @@ iris 實際結果（`references/pipeline_output_iris.txt`）：
 | LDA（5-fold × 10 次，seed 2026） | 平均 Macro recall 0.9793；平均答對 146.9／150（範圍 146–147） |
 | QDA（相同切分） | 平均 Macro recall 0.9733；平均答對 146.0／150（範圍 145–147） |
 | 逐次比較 | LDA 較高 6 次、QDA 較高 0 次、相同 4 次 |
-| 判別軸 | LD1 解釋 99.1% 組間變異；setosa 完全分開，誤判都在 versicolor／virginica 之間 |
+| 判別軸 | LD1 占判別資訊 99.1%（svd² 比例，不是正確率，也不是原始資料的變異解釋率）；setosa 完全分開，誤判都在 versicolor／virginica 之間 |
 | 選擇 | LDA（`lda_better`）；最終模型以全部 150 筆重新配適 |
 
 解說時：Box's M 拒絕共變異數同質，但 QDA 沒有因此分得比較準；10 次中 QDA 一次都沒有贏過 LDA。依規則選 LDA，但平均只差 0.9 筆，不能說 LDA 統計上較佳。
@@ -239,7 +244,7 @@ iris_missing 實際結果（`references/pipeline_output_iris_missing.txt`）：3
 ## 檔案索引
 
 - `scripts/lda_qda_pipeline.R`：命令列入口；讀 CSV 與欄位說明、選 X、呼叫 `run_pipeline()`，輸出 `report.html`、`report.qmd`、表格、圖、`report.txt`、`summary.json`。
-- `scripts/run_analysis.R`：核心函式——`run_analysis()`（LDA／QDA 與重複分層 CV）、`diagnose_data()`（Mardia、Box's M、資料檢查）、`save_figures()`、`make_report()`、`selection_text()`、`diagnostic_notes()`、`write_report_html()`、`write_report_qmd()`、`run_pipeline()`、`save_analysis()`。
+- `scripts/run_analysis.R`：核心函式——`run_analysis()`（LDA／QDA 與重複分層 CV）、`diagnose_data()`（Mardia、Box's M、資料檢查）、`save_figures()`、`make_report()`、`report_guides()`、`figure_notes()`、`purpose_text()`、`diagnostic_outcome()`、`conclusion_lines()`、`selection_text()`、`diagnostic_notes()`、`write_report_html()`、`write_report_qmd()`、`run_pipeline()`、`save_analysis()`。
 - `load_project.R`：在 R／RStudio 中載入上述函式（不會自動執行分析）。
 - `references/decision-tree.md`：資料問題與模型可行性的判斷規則。
 - `references/lda-qda-guide.md`：方法比較、公式、R 輸出解讀、常見問題、參考資料。
