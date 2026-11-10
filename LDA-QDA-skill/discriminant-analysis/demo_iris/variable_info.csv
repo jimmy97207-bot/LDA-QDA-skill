@@ -1,0 +1,6 @@
+"column","description","unit","role","type","missing"
+"Sepal.Length","花萼長度","cm","X（預測變數）","numeric",0
+"Sepal.Width","花萼寬度","cm","X（預測變數）","numeric",0
+"Petal.Length","花瓣長度","cm","X（預測變數）","numeric",0
+"Petal.Width","花瓣寬度","cm","X（預測變數）","numeric",0
+"Species","鳶尾花品種（setosa、versicolor、virginica）","","Y（分類變數）","character",0

@@ -1,0 +1,8 @@
+"check","value","note"
+"observations",150,"3 classes, 4 predictors"
+"duplicate_rows",1,"Identical rows on Y and X; kept, not assumed to be the same unit."
+"class_balance_ratio",1,""
+"classes_with_n_le_p",0,""
+"zero_within_class_variance",0,""
+"full_rank_X",1,""
+"iqr_outlier_rows",13,"Within-class 1.5 IQR rule per variable; flagged only, all kept."

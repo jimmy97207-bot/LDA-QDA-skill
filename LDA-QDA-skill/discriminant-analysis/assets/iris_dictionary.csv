@@ -1,0 +1,7 @@
+欄位,說明,單位,角色
+__dataset__,R datasets::iris 原樣匯出；150 朵鳶尾花，三個品種各 50 朵（Anderson 1935 採集，Fisher 1936 分析）,,
+Sepal.Length,花萼長度,cm,X
+Sepal.Width,花萼寬度,cm,X
+Petal.Length,花瓣長度,cm,X
+Petal.Width,花瓣寬度,cm,X
+Species,鳶尾花品種（setosa、versicolor、virginica）,,Y
