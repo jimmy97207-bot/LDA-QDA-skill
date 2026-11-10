@@ -1,0 +1,7 @@
+欄位,說明,單位,角色
+__dataset__,iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範缺失值關卡與各訓練折內的中位數補值,,
+Sepal.Length,花萼長度,cm,X
+Sepal.Width,花萼寬度,cm,X
+Petal.Length,花瓣長度,cm,X
+Petal.Width,花瓣寬度,cm,X
+Species,鳶尾花品種（setosa、versicolor、virginica）,,Y

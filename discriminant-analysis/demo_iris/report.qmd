@@ -1,0 +1,164 @@
+---
+title: "LDA／QDA 分析報告：iris"
+lang: zh-TW
+output-file: report-quarto.html
+format:
+  html:
+    toc: true
+    toc-title: "目錄"
+    embed-resources: true
+    code-fold: show
+execute:
+  warning: false
+  message: false
+---
+
+本報告由 LDA／QDA skill 產生。按 **Render** 會重新讀取資料、重新計算、重新畫圖；
+每個數字都來自下方顯示的程式碼。需要的檔案（`run_analysis.R`、`input_data.csv`）
+已放在同一個資料夾。
+
+```{r}
+#| label: setup
+source("run_analysis.R", encoding = "UTF-8")
+data <- read.csv("input_data.csv", check.names = FALSE, fileEncoding = "UTF-8-BOM")
+variable_info <- if (file.exists("variable_info.csv"))
+  read.csv("variable_info.csv", check.names = FALSE, fileEncoding = "UTF-8") else NULL
+result <- run_pipeline(data, y = "Species",
+  x = c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width"),
+  folds = 5, seed = 2026,
+  variable_info = variable_info,
+  impute = "none",
+  dataset_description = "R datasets::iris 原樣匯出；150 朵鳶尾花，三個品種各 50 朵（Anderson 1935 採集，Fisher 1936 分析）")
+pct <- function(v) ifelse(is.na(v), "未計算", sprintf("%.2f%%", 100 * v))
+```
+
+## 資料與設定
+
+`r if (!is.null(result$dataset_description)) result$dataset_description`
+
+- 要分類的欄位（Y）：`r result$settings$y`
+- 用來判斷的欄位（X）：`r paste(result$settings$x, collapse = '、')`
+- 樣本數：`r sum(result$class_counts$n)`
+- 驗證方式：把資料分成 `r result$settings$folds` 份，每次 `r result$settings$folds - 1` 份練習、1 份考試，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 `r result$settings$repeats` 次；隨機種子 `r result$settings$seed`
+
+```{r}
+#| 
+knitr::kable(result$class_counts, col.names = c("類別", "筆數"))
+```
+
+```{r}
+#| 
+if (!is.null(result$variable_info)) knitr::kable(result$variable_info)
+```
+
+## 資料檢查
+
+只做標記，沒有刪除、補值或轉換任何資料。
+
+```{r}
+#| 
+knitr::kable(result$data_checks)
+```
+
+```{r}
+#| results: asis
+if (identical(result$settings$impute, "median") && nrow(result$imputation)) {
+  cat("### 缺失值處理\n\n在每一份練習資料內計算中位數再補值，考試資料不參與計算。\n\n")
+  print(knitr::kable(imputation_summary(result), digits = 4))
+  cat("\n完整紀錄（每一輪、每個變數）見 imputation.csv。\n")
+}
+```
+
+## 假設診斷（參考用）
+
+Mardia 檢查每一類的資料是否接近常態分布；Box's M 檢查各類資料的分散程度是否相同。
+這兩個檢定的結果寫進報告當參考，**不用來選擇 LDA 或 QDA**。
+
+```{r}
+#| 
+d <- result$diagnostics
+d$statistic <- signif(d$statistic, 4)
+d$p_value <- signif(d$p_value, 4)
+knitr::kable(d)
+```
+
+### Mardia 與 Box's M 的合併解讀
+
+```{r}
+#| results: asis
+dn <- diagnostic_notes(result$diagnostics)
+print(knitr::kable(dn$table))
+cat("\n", paste(dn$notes, collapse = "\n\n"), "\n")
+```
+
+## 模型比較與選擇
+
+下表是 `r result$settings$repeats` 次重複的平均；必須完成全部重複的方法才參加比較。
+
+```{r}
+#| 
+m <- result$metrics
+for (k in c("coverage", "accuracy", "macro_recall", "macro_recall_sd", "macro_f1")) m[[k]] <- pct(m[[k]])
+knitr::kable(m, digits = 1)
+```
+
+```{r}
+#| results: asis
+cat(selection_text(result), sep = "\n\n")
+```
+
+### 每一次重複的結果
+
+```{r}
+#| 
+knitr::kable(repeat_table(result))
+```
+
+### 各類別表現（`r result$settings$repeats` 次合併）
+
+```{r}
+#| 
+cr <- result$class_recall
+for (k in c("recall", "precision", "f1")) cr[[k]] <- pct(cr[[k]])
+knitr::kable(cr)
+```
+
+### 混淆矩陣（`r result$settings$repeats` 次合併，列百分比）
+
+```{r}
+#| results: asis
+for (m in unique(result$confusion_matrix$model)) {
+  cat("\n**", toupper(m), "**\n\n", sep = "")
+  print(knitr::kable(confusion_percent(result, m)))
+}
+```
+
+## 圖
+
+```{r}
+#| 
+figs <- save_figures(result, data, "figures_qmd")
+knitr::include_graphics(file.path("figures_qmd", figs))
+```
+
+## 模型警告與錯誤
+
+```{r}
+#| results: asis
+if (nrow(result$issues)) knitr::kable(result$issues) else
+  cat("沒有記錄到警告或錯誤。")
+```
+
+## 範圍與限制
+
+- 本版只處理每一筆都是不同對象的資料，以及數值型的判斷欄位；驗證固定為分層 5-fold、重複 10 次。
+- 交叉驗證同時用來比較兩種方法，分數不是獨立測試的表現。
+- 檢定不顯著不代表假設已被證明；各組有多個檢定，p 值未做多重比較校正。
+
+## 執行環境
+
+```{r}
+#| 
+sessionInfo()
+```
+
