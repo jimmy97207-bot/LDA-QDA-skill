@@ -1,8 +1,0 @@
-"test","group","n","statistic","p_value","status","note"
-"Mardia Skewness","setosa",39,16.453531846198,0.688119393431771,"computed",""
-"Mardia Kurtosis","setosa",39,0.263381480239247,0.792256563460948,"computed",""
-"Mardia Skewness","versicolor",40,18.5948629086696,0.548283041430621,"computed",""
-"Mardia Kurtosis","versicolor",40,-1.03375343247537,0.301251446697996,"computed",""
-"Mardia Skewness","virginica",41,27.4102687217883,0.124110947334909,"computed",""
-"Mardia Kurtosis","virginica",41,0.12403269079017,0.901289391400092,"computed",""
-"Box M","ALL",120,111.789560923761,9.25421785991879e-15,"computed","df = 20"

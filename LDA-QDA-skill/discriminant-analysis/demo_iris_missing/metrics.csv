@@ -1,3 +1,0 @@
-"model","status","coverage","accuracy","macro_recall","macro_recall_sd","macro_f1","correct_mean","correct_min","correct_max"
-"lda","complete",1,0.94,0.94,0.007698003589195,0.940436381964943,141,139,143
-"qda","complete",1,0.955333333333333,0.955333333333333,0.0109092779632298,0.955481590025051,143.3,140,145

@@ -23,41 +23,6 @@ ul.task-list li input[type="checkbox"] {
 width: 0.8em;
 margin: 0 0.8em 0.2em -1em;  vertical-align: middle;
 }
-
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-{ counter-reset: source-line 0; }
-pre.numberSource code > span
-{ position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-{ content: counter(source-line);
-position: relative; left: -1em; text-align: right; vertical-align: baseline;
-border: none; display: inline-block;
--webkit-touch-callout: none; -webkit-user-select: none;
--khtml-user-select: none; -moz-user-select: none;
--ms-user-select: none; user-select: none;
-padding: 0 4px; width: 4em;
-}
-pre.numberSource { margin-left: 3em; padding-left: 4px; }
-div.sourceCode
-{ }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
-}
 </style>
 
 
@@ -2256,13 +2221,15 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
   <li><a href="#tradeoff" id="toc-tradeoff" class="nav-link" data-scroll-target="#tradeoff">05｜LDA 與 QDA 的取捨</a></li>
   <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">06｜分析目標與適用範圍</a></li>
   <li><a href="#flow" id="toc-flow" class="nav-link" data-scroll-target="#flow">07｜完整分析流程</a></li>
-  <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model">08｜從資料探索到 LDA／QDA 決策</a></li>
-  <li><a href="#diagnostics" id="toc-diagnostics" class="nav-link" data-scroll-target="#diagnostics">09｜假設診斷與資料處理界線</a></li>
-  <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">10｜公平比較：相同切分的交叉驗證</a></li>
+  <li><a href="#diagnostics" id="toc-diagnostics" class="nav-link" data-scroll-target="#diagnostics">08｜資料探索與假設診斷</a></li>
+  <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">09｜公平比較：相同切分的交叉驗證</a></li>
+  <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model">10｜怎麼選 LDA 或 QDA：看考試成績</a></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">11｜iris 實作驗證與成果</a></li>
   <li><a href="#limits" id="toc-limits" class="nav-link" data-scroll-target="#limits">12｜限制與貢獻</a></li>
-  <li><a href="#usage" id="toc-usage" class="nav-link" data-scroll-target="#usage">附錄 A｜使用方式與檔案分工</a></li>
-  <li><a href="#reproducibility" id="toc-reproducibility" class="nav-link" data-scroll-target="#reproducibility">附錄 B｜可重現性、驗收與參考資料</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">13｜參考資料</a></li>
+  <li><a href="#usage" id="toc-usage" class="nav-link" data-scroll-target="#usage">附錄 A｜在 Claude 上使用這個 skill</a></li>
+  <li><a href="#reproducibility" id="toc-reproducibility" class="nav-link" data-scroll-target="#reproducibility">附錄 B｜可重現性與驗收</a></li>
+  <li><a href="#formulas" id="toc-formulas" class="nav-link" data-scroll-target="#formulas">附錄 C｜LDA 與 QDA 的判別函數</a></li>
   </ul>
 </nav>
 </div>
@@ -2395,7 +2362,7 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
 </tbody>
 </table>
 <p>注意：每個變數<strong>各自</strong>看起來像常態，不代表它們<strong>合起來</strong>是多元常態，所以要用 Mardia 這類多變量檢定一起檢查。</p>
-<p>共變異數的假設是區分 LDA 與 QDA 的地方；實際要選哪一個，仍要考量樣本量與驗證表現。</p>
+<p>共變異數的假設是區分 LDA 與 QDA 的地方，下一節說明兩者的差別。</p>
 </section>
 <section id="lda-qda" class="level2">
 <h2 class="anchored" data-anchor-id="lda-qda">04｜LDA 與 QDA</h2>
@@ -2609,7 +2576,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </tr>
 <tr class="even">
 <td>Mardia、Box’s M 的結果</td>
-<td>寫進報告當參考，不用來選方法；附兩者的合併解讀，Mardia 顯著時自動加註</td>
+<td>寫進報告當參考，附兩者的合併解讀；Mardia 顯著時自動加註</td>
 </tr>
 <tr class="odd">
 <td>根本不是分類問題（例如要預測身高）</td>
@@ -2619,61 +2586,15 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </table>
 </section>
 </section>
-<section id="model" class="level2">
-<h2 class="anchored" data-anchor-id="model">08｜從資料探索到 LDA／QDA 決策</h2>
-<section id="探索與模型設定" class="level3">
-<h3 class="anchored" data-anchor-id="探索與模型設定">探索與模型設定</h3>
+<section id="diagnostics" class="level2">
+<h2 class="anchored" data-anchor-id="diagnostics">08｜資料探索與假設診斷</h2>
+<section id="資料與模型設定" class="level3">
+<h3 class="anchored" data-anchor-id="資料與模型設定">資料與模型設定</h3>
 <p>先整理各類別樣本數、變數分布與資料品質，再確認候選模型是否可以估計。數值型 ID、結果發生後才取得的欄位，不能只因為「可以轉成數字」就直接納入 X。</p>
-</section>
-<section id="怎麼選-lda-或-qda看考試成績" class="level3">
-<h3 class="anchored" data-anchor-id="怎麼選-lda-或-qda看考試成績">怎麼選 LDA 或 QDA：看考試成績</h3>
-<p>兩種方法都算得出來時，用同一套「練習與考試」（分層交叉驗證）比較，而且整套考試重新分組做 10 次：</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>規則</th>
-<th>說明</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>誰考得好就用誰</td>
-<td>比較每一類各自答對比例的平均（Macro recall），避免大類別把分數撐高</td>
-</tr>
-<tr class="even">
-<td>考 10 次取平均</td>
-<td>兩種方法用<strong>相同的分層 5-fold、重複 10 次</strong>（每次重新隨機分組），比較 10 次的平均 Macro recall，較高者勝出；完全相同時選較簡單的 LDA</td>
-</tr>
-<tr class="odd">
-<td>要考完 10 次才算</td>
-<td>某個方法有任何一次、任何一折算不出來，就標為「驗證不完整」，不參加比較</td>
-</tr>
-<tr class="even">
-<td>看勝出次數說明穩定度</td>
-<td>報告寫出 10 次中各贏幾次；落後的方法也贏了好幾次時，明說兩者表現接近，<strong>不代表較高者真的比較好</strong></td>
-</tr>
-<tr class="odd">
-<td>選定後建立最終模型</td>
-<td>用全部分析資料重新配適選中的方法，作為最終模型；交叉驗證分數只用來比較，不是獨立測試表現</td>
-</tr>
-<tr class="even">
-<td>檢定只當參考</td>
-<td>Mardia、Box’s M 寫進報告，不用來選方法。Box’s M 顯著，表示有證據顯示各類散開的方式不同，但不代表 QDA 比較準</td>
-</tr>
-</tbody>
-</table>
-<div class="report-note">
-<strong>為什麼不用 Box’s M 決定？</strong><br> 資料不像鐘形或樣本很多時，它很容易顯著；就算各類真的不同，QDA 多估的參數也可能讓它分得更差。所以直接比誰分得準。
-</div>
 <p>LDA／QDA 使用 <code>MASS::lda()</code> 與 <code>MASS::qda()</code>。先驗機率預設來自各訓練折的類別比例，並保存類別順序；矩陣秩不足或組內無變異時，記錄原因，不擅自刪欄或改用其他模型。</p>
 </section>
-</section>
-<section id="diagnostics" class="level2">
-<h2 class="anchored" data-anchor-id="diagnostics">09｜假設診斷與資料處理界線</h2>
+<section id="探索圖與假設診斷" class="level3">
+<h3 class="anchored" data-anchor-id="探索圖與假設診斷">探索圖與假設診斷</h3>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -2706,7 +2627,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 <tr class="even">
 <td>Box’s M</td>
 <td>各類散開的大小和方向一樣嗎？</td>
-<td>資料不像鐘形時容易顯著；顯著也不代表要用 QDA</td>
+<td>資料不像鐘形時容易顯著，要搭配 Mardia 解讀</td>
 </tr>
 <tr class="odd">
 <td>常數、線性相依與樣本量</td>
@@ -2715,6 +2636,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </tr>
 </tbody>
 </table>
+</section>
 <section id="mardia-與-boxs-m-要一起看" class="level3">
 <h3 class="anchored" data-anchor-id="mardia-與-boxs-m-要一起看">Mardia 與 Box’s M 要一起看</h3>
 <p>Box’s M 的結論依賴常態假設，所以兩個檢定合起來解讀。報告會附這張表，標出資料落在哪一格：</p>
@@ -2756,7 +2678,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </section>
 </section>
 <section id="validation" class="level2">
-<h2 class="anchored" data-anchor-id="validation">10｜公平比較：相同切分的交叉驗證</h2>
+<h2 class="anchored" data-anchor-id="validation">09｜公平比較：相同切分的交叉驗證</h2>
 <p>每次以四折訓練、一折驗證，輪流讓每筆觀測取得一次折外預測。兩個模型使用相同折別與種子；本例每折訓練 120 筆、驗證 30 筆，各類別分別為 40／10 筆。</p>
 <div class="cell">
 <div class="cell-output-display">
@@ -2794,7 +2716,48 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </tbody>
 </table>
 <p>整體正確率會被大類別撐高，Macro recall 則讓每一類一樣重要。另呈現整體正確率與混淆矩陣。補值等前處理必須在各折訓練資料內估計，不能在交叉驗證前用全部資料先補好。</p>
-<p>方法必須 10 次全部完成才參加比較；有任何一折失敗，就標為「驗證不完整」並揭露原因，不用成功部分的分數和另一個方法直接排名。平均分數的差距與勝出次數只描述這組資料的結果，不當成統計優越性或獨立測試結果。</p>
+</section>
+<section id="model" class="level2">
+<h2 class="anchored" data-anchor-id="model">10｜怎麼選 LDA 或 QDA：看考試成績</h2>
+<p>兩種方法都算得出來時，依上一節的交叉驗證結果，用下面的規則選方法：</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>規則</th>
+<th>說明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>誰考得好就用誰</td>
+<td>比較每一類各自答對比例的平均（Macro recall），避免大類別把分數撐高</td>
+</tr>
+<tr class="even">
+<td>考 10 次取平均</td>
+<td>兩種方法用<strong>相同的分層 5-fold、重複 10 次</strong>（每次重新隨機分組），比較 10 次的平均 Macro recall，較高者勝出；完全相同時選較簡單的 LDA</td>
+</tr>
+<tr class="odd">
+<td>要考完 10 次才算</td>
+<td>某個方法有任何一次、任何一折算不出來，就標為「驗證不完整」，不參加比較</td>
+</tr>
+<tr class="even">
+<td>看勝出次數說明穩定度</td>
+<td>報告寫出 10 次中各贏幾次；落後的方法也贏了好幾次時，明說兩者表現接近，<strong>不代表較高者真的比較好</strong></td>
+</tr>
+<tr class="odd">
+<td>選定後建立最終模型</td>
+<td>用全部分析資料重新配適選中的方法，作為最終模型；交叉驗證分數只用來比較，不是獨立測試表現</td>
+</tr>
+</tbody>
+</table>
+<div class="report-note">
+<strong>為什麼不用 Box’s M 決定？</strong><br> Box’s M 只能回答「各類資料散開的方式一不一樣」，但我們真正想知道的是「哪個方法分得比較準」，這是兩件事。<br> 而且它常常太敏感：資料形狀不夠像鐘形，或資料筆數很多時，就算只差一點點，它也會說「不一樣」。<br> 就算各類真的不一樣，QDA 要多估很多數字，資料不夠多時反而容易估歪，分得比 LDA 還差。<br> 所以我們不靠檢定猜，而是讓兩個方法考同一份試，誰答對得多就用誰。
+</div>
+<p>平均分數的差距與勝出次數只描述這組資料的結果，不當成統計優越性或獨立測試結果。</p>
 </section>
 <section id="results" class="level2">
 <h2 class="anchored" data-anchor-id="results">11｜iris 實作驗證與成果</h2>
@@ -2813,7 +2776,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 <p class="diagram-caption">
 圖 3　花瓣長度與寬度的分組散布圖。這是四個 X 中兩個欄位的視覺化，不是四維分類邊界。
 </p>
-<p>Setosa 在花瓣測量上較容易分離，versicolor 與 virginica 有重疊。資料有 1 筆超出首次出現的完全相同紀錄；依組內各變數 1.5 IQR 規則，標記 13 筆觀測。<strong>全部保留</strong>，相同測量值也不能單憑資料表認定為同一個體。</p>
+<p>setosa 和另外兩種花分得很開，versicolor 和 virginica 有部分重疊。</p>
 </section>
 <section id="假設診斷" class="level3">
 <h3 class="anchored" data-anchor-id="假設診斷">假設診斷</h3>
@@ -3038,16 +3001,34 @@ QDA｜10 次平均 Macro recall
 <p>這個 Skill 的成果，不只有分類分數，也包含：明確的分析路徑、會停下來問人的關卡與白話選項、不洩漏的驗證與補值、實際計算依據，以及可追溯的限制與失敗紀錄。</p>
 </div>
 </div>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">13｜參考資料</h2>
+<p><strong>原始文獻</strong></p>
+<ul>
+<li>Fisher, R. A. (1936). The use of multiple measurements in taxonomic problems. <em>Annals of Eugenics</em>, 7(2), 179–188.</li>
+<li>Box, G. E. P. (1949). A general distribution theory for a class of likelihood criteria. <em>Biometrika</em>, 36(3/4), 317–346.</li>
+<li>Mardia, K. V. (1970). Measures of multivariate skewness and kurtosis with applications. <em>Biometrika</em>, 57(3), 519–530.</li>
+</ul>
+<p><strong>教科書</strong>（作者官方網站提供免費 PDF）</p>
+<ul>
+<li>Hastie, T., Tibshirani, R., &amp; Friedman, J. (2009). <em>The Elements of Statistical Learning</em> (2nd ed.), §4.3 線性與二次區別分析. Springer. <a href="https://hastie.su.domains/ElemStatLearn/">官方網站</a></li>
+<li>James, G., Witten, D., Hastie, T., &amp; Tibshirani, R. (2021). <em>An Introduction to Statistical Learning with Applications in R</em> (2nd ed.), §4.4 LDA 與 QDA. Springer. <a href="https://www.statlearning.com/">官方網站</a></li>
+</ul>
+<p><strong>軟體文件與資料</strong></p>
+<ul>
+<li><a href="https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/lda.html">MASS：LDA 官方文件</a>、<a href="https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/qda.html">MASS：QDA 官方文件</a></li>
+<li>實作比對：<a href="https://search.r-project.org/CRAN/refmans/biotools/html/boxM.html">biotools::boxM</a>、<a href="https://github.com/selcukorkmaz/MVN/blob/master/R/mardia.R">MVN::mardia</a></li>
+<li><a href="https://scikit-learn.org/stable/modules/cross_validation.html">scikit-learn：交叉驗證與分組切分</a>、<a href="https://scikit-learn.org/stable/common_pitfalls.html">常見陷阱：資料洩漏</a></li>
+<li><a href="https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/iris.html">R：iris 資料來源與欄位</a></li>
+</ul>
 <p class="part-label">
 附錄
 </p>
 </section>
 <section id="usage" class="level2">
-<h2 class="anchored" data-anchor-id="usage">附錄 A｜使用方式與檔案分工</h2>
-<p>安裝 skill 時上傳 <code>discriminant-analysis.zip</code>（或把 <code>discriminant-analysis/</code> 放進 skills 目錄）；只需要 R 與內建的 MASS。R 負責分析；Quarto（RStudio 內建）負責把 <code>.qmd</code> 轉成 <code>.html</code>，需要另外安裝 R 套件 <code>knitr</code> 與 <code>rmarkdown</code>。可用命令列一鍵執行、在 RStudio 載入函式，或讓 AI 依 <code>SKILL.md</code> 操作。</p>
-<blockquote class="blockquote">
-<p>請依這個專案的 SKILL.md 分析 iris.csv。以 Species 為 Y、其餘四個數值欄位為 X，使用 seed＝2026 的分層 5-fold 重複 10 次比較 LDA／QDA。需要更動資料時先詢問，最後說明模型建議、限制與輸出位置。</p>
-</blockquote>
+<h2 class="anchored" data-anchor-id="usage">附錄 A｜在 Claude 上使用這個 skill</h2>
+<p>在 Claude 網頁版或 App 上依下列步驟操作，不需要自己寫程式。</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
@@ -3055,64 +3036,43 @@ QDA｜10 次平均 Macro recall
 </colgroup>
 <thead>
 <tr class="header">
-<th>檔案</th>
-<th>分工</th>
+<th>步驟</th>
+<th>怎麼做</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>SKILL.md</code></td>
-<td>主流程、確認關卡、解說重點與 demo 結果</td>
+<td>1. 下載 skill</td>
+<td>到本專案的 GitHub 頁面下載 <code>discriminant-analysis.zip</code>，<strong>不用解壓縮</strong>。壓縮檔裡是一個 <code>discriminant-analysis/</code> 資料夾，<code>SKILL.md</code> 就在這個資料夾裡</td>
 </tr>
 <tr class="even">
-<td><code>scripts/lda_qda_pipeline.R</code></td>
-<td>命令列一鍵執行：選 X、變數介紹、完整分析與輸出</td>
+<td>2. 打開程式執行功能</td>
+<td>在 Claude 的「Settings → Capabilities」打開「Code execution and file creation」（新版設定稱為「Create and edit files」）。skill 需要執行程式，這一項必須開啟</td>
 </tr>
 <tr class="odd">
-<td><code>scripts/run_analysis.R</code></td>
-<td>核心計算：模型、診斷、圖、報告與檔案輸出</td>
+<td>3. 上傳 skill</td>
+<td>到「Customize → Skills」，按「＋」→「Create skill」→「Upload a skill」，選擇剛才的 zip；上傳後確認它在清單中是開啟的</td>
 </tr>
 <tr class="even">
-<td><code>references/decision-tree.md</code></td>
-<td>資料問題與模型可行性的決策分支</td>
+<td>4. 開始分析</td>
+<td>開一個新對話，上傳資料（CSV 檔，每一列一筆資料、第一列是欄位名稱），輸入「幫我用這份資料做區別分析」</td>
 </tr>
 <tr class="odd">
-<td><code>references/lda-qda-guide.md</code></td>
-<td>方法比較、公式、輸出解讀與參考資料</td>
+<td>5. 回答 Claude 的問題</td>
+<td>沒說明要分類哪一欄時，Claude 會先問；接著列出打算用來判斷的欄位請你確認，並確認同一個對象會不會有好幾筆。X 有空格時會問要不要補中位數；Y 有空格則會停止並說明</td>
 </tr>
 <tr class="even">
-<td><code>references/evaluation.md</code></td>
-<td>切分、評估指標與比較限制</td>
-</tr>
-<tr class="odd">
-<td><code>assets/iris.csv</code>、<code>assets/iris_missing.csv</code> 與欄位說明檔</td>
-<td>兩個可重現的示範資料（乾淨資料、有空格的資料）</td>
-</tr>
-<tr class="even">
-<td><code>demo_iris/</code>、<code>demo_iris_missing/</code></td>
-<td>兩個示範的完整輸出</td>
-</tr>
-<tr class="odd">
-<td><code>tests/validate.R</code></td>
-<td>程式、命令列與檔案讀寫驗收</td>
+<td>6. 拿到結果</td>
+<td>中文分析報告 <code>report.html</code>、含 R 程式碼的報告原始檔 <code>report.qmd</code>，以及圖和表格</td>
 </tr>
 </tbody>
 </table>
-<details>
-<summary>
-報告展示時可使用的最小執行範例
-</summary>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> discriminant-analysis</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> scripts/lda_qda_pipeline.R assets/iris.csv <span class="at">--target</span> Species <span class="at">--out</span> my_iris_result</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 有空格的資料：使用者同意補值後才加 --impute median</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> scripts/lda_qda_pipeline.R assets/iris_missing.csv <span class="at">--target</span> Species <span class="at">--impute</span> median <span class="at">--out</span> my_iris_missing_result</span></code></pre></div><button title="複製到剪貼簿" class="code-copy-button"><i class="bi"></i></button></div>
-<p><code>demo_iris/</code>、<code>demo_iris_missing/</code> 是已經跑好的結果，可以直接打開。</p>
-<p>輸出兩種中文報告：<code>report.html</code>（R 直接寫出、一定會有）與 <code>report.qmd</code>（含 R 程式碼區塊，在 RStudio 按 Render 會重新計算，輸出 <code>report-quarto.html</code>）；另有 6 張圖、各表 CSV、<code>report.txt</code> 與 <code>summary.json</code>。輸出資料夾已存在時停止，以保留舊結果。</p>
-</details>
-<p><strong>本頁是 Skill 設計與示範驗證的報告。</strong> 每次分析另外會產生該資料的 <code>report.html</code> 與含 R 程式碼的 <code>report.qmd</code>；尚未產生 PDF。</p>
+<div class="report-note">
+<strong>注意事項</strong><br> ① 本 Skill 使用 R 進行統計分析，需確認執行環境支援 R 及必要套件。若目前環境不支援，則需改在已安裝 R 的環境執行，例如使用 Claude Code 搭配本機 R。<br> ② 依 Claude 官方說明，Free、Pro、Max、Ultra、Team、Enterprise 方案都可以使用 skills。Team、Enterprise 帳號若找不到上傳選項，可能是管理員關閉了這項功能，請洽管理員。<br> ③ 想先看看結果長什麼樣子，可以直接打開 GitHub 上的 <code>demo_iris/report.html</code>，那是用 iris 實際跑出來的報告。<br> ④ 官方操作說明：<a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude">Use skills in Claude</a>、<a href="https://support.claude.com/en/articles/12512198">How to create custom skills</a>。介面名稱可能隨版本調整，以官方說明為準。
+</div>
 </section>
 <section id="reproducibility" class="level2">
-<h2 class="anchored" data-anchor-id="reproducibility">附錄 B｜可重現性、驗收與參考資料</h2>
+<h2 class="anchored" data-anchor-id="reproducibility">附錄 B｜可重現性與驗收</h2>
 <p>本頁在 Render 時重新讀取示範 CSV、呼叫既有分析函式，表格與圖形由 R 實際生成；流程圖以內嵌 SVG 呈現，可離線閱讀，不依賴線上 Mermaid 服務。</p>
 <table class="caption-top table">
 <thead>
@@ -3141,22 +3101,22 @@ QDA｜10 次平均 Macro recall
 </tbody>
 </table>
 <p><code>tests/validate.R</code> 完成 136 項程式驗收（含 Mardia／Box’s M 與 MVN 6.3／biotools 4.3 實測值比對、合併解讀與自動註記、命令列入口、重複交叉驗證、各折補值不洩漏、選擇規則、驗證不完整的處理、固定 5 折 × 10 次與停止條件），並做過一次依參考文件執行的完整 iris 試跑；這份報告另外重新計算示範結果。<strong>程式驗收、示範資料通過與所有資料皆適用，是不同的驗證範圍。</strong></p>
-<section id="方法依據" class="level3">
-<h3 class="anchored" data-anchor-id="方法依據">方法依據</h3>
-<ul>
-<li><a href="https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/lda.html">MASS：LDA 官方文件</a></li>
-<li><a href="https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/qda.html">MASS：QDA 官方文件</a></li>
-<li>Mardia, K. V. (1970). Measures of multivariate skewness and kurtosis with applications. <em>Biometrika</em>, 57(3), 519–530.</li>
-<li>Box, G. E. P. (1949). A general distribution theory for a class of likelihood criteria. <em>Biometrika</em>, 36(3/4), 317–346.</li>
-<li>實作比對：<a href="https://search.r-project.org/CRAN/refmans/biotools/html/boxM.html">biotools::boxM</a>、<a href="https://github.com/selcukorkmaz/MVN/blob/master/R/mardia.R">MVN::mardia</a></li>
-<li>Hastie, T., Tibshirani, R., &amp; Friedman, J. (2009). <em>The Elements of Statistical Learning</em> (2nd ed.), §4.3 線性與二次區別分析. Springer.</li>
-<li><a href="https://scikit-learn.org/stable/modules/cross_validation.html">scikit-learn：交叉驗證與分組切分</a>、<a href="https://scikit-learn.org/stable/common_pitfalls.html">常見陷阱：資料洩漏</a></li>
-<li><a href="https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/iris.html">R：iris 資料來源與欄位</a></li>
-</ul>
+</section>
+<section id="formulas" class="level2">
+<h2 class="anchored" data-anchor-id="formulas">附錄 C｜LDA 與 QDA 的判別函數</h2>
+<p>兩者都來自「分到機率最大的那一類」（Bayes 規則），再假設每一類是多元常態 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>N</mi><mi>p</mi></msub><mo stretchy="false" form="prefix">(</mo><msub><mi mathvariant="bold-italic">𝝁</mi><mi>k</mi></msub><mo>,</mo><msub><mi mathvariant="bold">𝚺</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">N_p(\boldsymbol\mu_k,\boldsymbol\Sigma_k)</annotation></semantics></math>；<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>π</mi><mi>k</mi></msub><annotation encoding="application/x-tex">\pi_k</annotation></semantics></math> 是第 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math> 類的先驗機率。新資料 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="bold-italic">𝒙</mi><annotation encoding="application/x-tex">\mathbf x</annotation></semantics></math> 分到判別分數 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>δ</mi><mi>k</mi></msub><mo stretchy="false" form="prefix">(</mo><mi mathvariant="bold-italic">𝒙</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\delta_k(\mathbf x)</annotation></semantics></math> 最大的那一類。</p>
+<p><strong>QDA</strong>：每一類有自己的共變異數矩陣 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi mathvariant="bold">𝚺</mi><mi>k</mi></msub><annotation encoding="application/x-tex">\boldsymbol\Sigma_k</annotation></semantics></math>，</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>δ</mi><mi>k</mi><mi>Q</mi></msubsup><mo stretchy="false" form="prefix">(</mo><mi mathvariant="bold-italic">𝒙</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mi>−</mi><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mo stretchy="false" form="prefix">|</mo><msub><mi mathvariant="bold">𝚺</mi><mi>k</mi></msub><mo stretchy="false" form="prefix">|</mo><mi>−</mi><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><mo stretchy="false" form="prefix">(</mo><mi mathvariant="bold-italic">𝒙</mi><mo>−</mo><msub><mi mathvariant="bold-italic">𝝁</mi><mi>k</mi></msub><msup><mo stretchy="false" form="postfix">)</mo><mi>⊤</mi></msup><msubsup><mi mathvariant="bold">𝚺</mi><mi>k</mi><mrow><mi>−</mi><mn>1</mn></mrow></msubsup><mo stretchy="false" form="prefix">(</mo><mi mathvariant="bold-italic">𝒙</mi><mo>−</mo><msub><mi mathvariant="bold-italic">𝝁</mi><mi>k</mi></msub><mo stretchy="false" form="postfix">)</mo><mo>+</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>π</mi><mi>k</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\delta_k^{Q}(\mathbf x)=-\tfrac12\log|\boldsymbol\Sigma_k|-\tfrac12(\mathbf x-\boldsymbol\mu_k)^\top\boldsymbol\Sigma_k^{-1}(\mathbf x-\boldsymbol\mu_k)+\log\pi_k .
+</annotation></semantics></math></p>
+<p><strong>LDA</strong>：再假設所有類別共用 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold">𝚺</mi><mi>k</mi></msub><mo>=</mo><mi mathvariant="bold">𝚺</mi></mrow><annotation encoding="application/x-tex">\boldsymbol\Sigma_k=\boldsymbol\Sigma</annotation></semantics></math>，含 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi mathvariant="bold-italic">𝒙</mi><mi>⊤</mi></msup><msup><mi mathvariant="bold">𝚺</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><mi mathvariant="bold-italic">𝒙</mi></mrow><annotation encoding="application/x-tex">\mathbf x^\top\boldsymbol\Sigma^{-1}\mathbf x</annotation></semantics></math> 的二次項對每一類都一樣而消去，判別函數變成 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi mathvariant="bold-italic">𝒙</mi><annotation encoding="application/x-tex">\mathbf x</annotation></semantics></math> 的線性函數，分界因此是直線（超平面）：</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msubsup><mi>δ</mi><mi>k</mi><mi>L</mi></msubsup><mo stretchy="false" form="prefix">(</mo><mi mathvariant="bold-italic">𝒙</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><msup><mi mathvariant="bold-italic">𝒙</mi><mi>⊤</mi></msup><msup><mi mathvariant="bold">𝚺</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><msub><mi mathvariant="bold-italic">𝝁</mi><mi>k</mi></msub><mo>−</mo><mstyle displaystyle="false"><mfrac><mn>1</mn><mn>2</mn></mfrac></mstyle><msubsup><mi mathvariant="bold-italic">𝝁</mi><mi>k</mi><mi>⊤</mi></msubsup><msup><mi mathvariant="bold">𝚺</mi><mrow><mi>−</mi><mn>1</mn></mrow></msup><msub><mi mathvariant="bold-italic">𝝁</mi><mi>k</mi></msub><mo>+</mo><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><msub><mi>π</mi><mi>k</mi></msub><mi>.</mi></mrow><annotation encoding="application/x-tex">
+\delta_k^{L}(\mathbf x)=\mathbf x^\top\boldsymbol\Sigma^{-1}\boldsymbol\mu_k-\tfrac12\boldsymbol\mu_k^\top\boldsymbol\Sigma^{-1}\boldsymbol\mu_k+\log\pi_k .
+</annotation></semantics></math></p>
+<p>Box’s M 檢定的就是 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi mathvariant="bold">𝚺</mi><mn>1</mn></msub><mo>=</mo><mi>⋯</mi><mo>=</mo><msub><mi mathvariant="bold">𝚺</mi><mi>K</mi></msub></mrow><annotation encoding="application/x-tex">\boldsymbol\Sigma_1=\cdots=\boldsymbol\Sigma_K</annotation></semantics></math> 是否成立。估計量、Mardia 與 Box’s M 的完整公式見 <code>references/lda-qda-guide.md</code>。</p>
 <div class="report-footer">
 <p>多變量分析（區別分析）｜LDA／QDA Skill 流程設計與實作驗證<br> 呈現方式參考使用者提供的《互動式迴歸分析｜流程設計與使用說明》；分析規則依本專案第一版能力撰寫。</p>
 </div>
-</section>
 </section>
 
 </main>

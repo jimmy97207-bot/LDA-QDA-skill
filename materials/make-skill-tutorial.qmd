@@ -184,7 +184,7 @@ Fisher 只找「怎麼組合變數最能分開類別」，不需要假設資料�
 
 注意：每個變數**各自**看起來像常態，不代表它們**合起來**是多元常態，所以要用 Mardia 這類多變量檢定一起檢查。
 
-共變異數的假設是區分 LDA 與 QDA 的地方；實際要選哪一個，仍要考量樣本量與驗證表現。
+共變異數的假設是區分 LDA 與 QDA 的地方，下一節說明兩者的差別。
 
 ## 04｜LDA 與 QDA {#lda-qda}
 
@@ -259,42 +259,26 @@ Y 一定由使用者指定；AI 自動提出 X 清單，使用者確認後才執
 | 有重複的資料，或特別大、特別小的值 | 標記出來，但不刪除 |
 | 各類別數量差很多 | 改看「每一類各自答對多少」，避免大類別把分數撐高 |
 | 某個方法在任何一次、任何一折算不出來 | 標為「驗證不完整」，不參加比較，只評估另一個方法 |
-| Mardia、Box's M 的結果 | 寫進報告當參考，不用來選方法；附兩者的合併解讀，Mardia 顯著時自動加註 |
+| Mardia、Box's M 的結果 | 寫進報告當參考，附兩者的合併解讀；Mardia 顯著時自動加註 |
 | 根本不是分類問題（例如要預測身高） | 說明這個方法不適用 |
 
 
-## 08｜從資料探索到 LDA／QDA 決策 {#model}
+## 08｜資料探索與假設診斷 {#diagnostics}
 
-### 探索與模型設定
+### 資料與模型設定
 
 先整理各類別樣本數、變數分布與資料品質，再確認候選模型是否可以估計。數值型 ID、結果發生後才取得的欄位，不能只因為「可以轉成數字」就直接納入 X。
 
-### 怎麼選 LDA 或 QDA：看考試成績
-
-兩種方法都算得出來時，用同一套「練習與考試」（分層交叉驗證）比較，而且整套考試重新分組做 10 次：
-
-| 規則 | 說明 |
-|---|---|
-| 誰考得好就用誰 | 比較每一類各自答對比例的平均（Macro recall），避免大類別把分數撐高 |
-| 考 10 次取平均 | 兩種方法用**相同的分層 5-fold、重複 10 次**（每次重新隨機分組），比較 10 次的平均 Macro recall，較高者勝出；完全相同時選較簡單的 LDA |
-| 要考完 10 次才算 | 某個方法有任何一次、任何一折算不出來，就標為「驗證不完整」，不參加比較 |
-| 看勝出次數說明穩定度 | 報告寫出 10 次中各贏幾次；落後的方法也贏了好幾次時，明說兩者表現接近，**不代表較高者真的比較好** |
-| 選定後建立最終模型 | 用全部分析資料重新配適選中的方法，作為最終模型；交叉驗證分數只用來比較，不是獨立測試表現 |
-| 檢定只當參考 | Mardia、Box's M 寫進報告，不用來選方法。Box's M 顯著，表示有證據顯示各類散開的方式不同，但不代表 QDA 比較準 |
-
-<div class="report-note"><strong>為什麼不用 Box's M 決定？</strong><br>
-資料不像鐘形或樣本很多時，它很容易顯著；就算各類真的不同，QDA 多估的參數也可能讓它分得更差。所以直接比誰分得準。</div>
-
 LDA／QDA 使用 `MASS::lda()` 與 `MASS::qda()`。先驗機率預設來自各訓練折的類別比例，並保存類別順序；矩陣秩不足或組內無變異時，記錄原因，不擅自刪欄或改用其他模型。
 
-## 09｜假設診斷與資料處理界線 {#diagnostics}
+### 探索圖與假設診斷
 
 | 檢查 | 要回答的問題 | 解讀界線 |
 |---|---|---|
 | 分組散布圖、箱型圖 | 分布、重疊與離群外觀如何？ | 圖形提供探索線索，不直接決定刪除資料 |
 | 各組 Q-Q 圖 | 個別變數的常態外觀是否合理？ | 邊際常態不能單獨證明多變量常態 |
 | 各組 Mardia | 多變量偏態、峰態是否有異常訊號？ | 不顯著不等於已證明常態；保留樣本數與方法限制 |
-| Box’s M | 各類散開的大小和方向一樣嗎？ | 資料不像鐘形時容易顯著；顯著也不代表要用 QDA |
+| Box’s M | 各類散開的大小和方向一樣嗎？ | 資料不像鐘形時容易顯著，要搭配 Mardia 解讀 |
 | 常數、線性相依與樣本量 | 模型及各訓練折能否估計？ | 可行性須逐模型、逐訓練折檢查 |
 
 ### Mardia 與 Box's M 要一起看
@@ -313,7 +297,7 @@ Box's M 的結論依賴常態假設，所以兩個檢定合起來解讀。報告
 <div class="report-note warning"><strong>資料處理與分類比較分開記錄。</strong><br>
 缺失值、重複資料及離群標記先說明；沒有取得處理決定前，不自行刪除、插補或轉換；使用者同意補 X 的空格時，只在每份練習資料內計算中位數；Y 的空格不補。超出目前支援範圍時，不以其他切分方式悄悄替代。</div>
 
-## 10｜公平比較：相同切分的交叉驗證 {#validation}
+## 09｜公平比較：相同切分的交叉驗證 {#validation}
 
 每次以四折訓練、一折驗證，輪流讓每筆觀測取得一次折外預測。兩個模型使用相同折別與種子；本例每折訓練 120 筆、驗證 30 筆，各類別分別為 40／10 筆。
 
@@ -364,7 +348,27 @@ $$
 
 整體正確率會被大類別撐高，Macro recall 則讓每一類一樣重要。另呈現整體正確率與混淆矩陣。補值等前處理必須在各折訓練資料內估計，不能在交叉驗證前用全部資料先補好。
 
-方法必須 10 次全部完成才參加比較；有任何一折失敗，就標為「驗證不完整」並揭露原因，不用成功部分的分數和另一個方法直接排名。平均分數的差距與勝出次數只描述這組資料的結果，不當成統計優越性或獨立測試結果。
+
+
+## 10｜怎麼選 LDA 或 QDA：看考試成績 {#model}
+
+兩種方法都算得出來時，依上一節的交叉驗證結果，用下面的規則選方法：
+
+| 規則 | 說明 |
+|---|---|
+| 誰考得好就用誰 | 比較每一類各自答對比例的平均（Macro recall），避免大類別把分數撐高 |
+| 考 10 次取平均 | 兩種方法用**相同的分層 5-fold、重複 10 次**（每次重新隨機分組），比較 10 次的平均 Macro recall，較高者勝出；完全相同時選較簡單的 LDA |
+| 要考完 10 次才算 | 某個方法有任何一次、任何一折算不出來，就標為「驗證不完整」，不參加比較 |
+| 看勝出次數說明穩定度 | 報告寫出 10 次中各贏幾次；落後的方法也贏了好幾次時，明說兩者表現接近，**不代表較高者真的比較好** |
+| 選定後建立最終模型 | 用全部分析資料重新配適選中的方法，作為最終模型；交叉驗證分數只用來比較，不是獨立測試表現 |
+
+<div class="report-note"><strong>為什麼不用 Box's M 決定？</strong><br>
+Box's M 只能回答「各類資料散開的方式一不一樣」，但我們真正想知道的是「哪個方法分得比較準」，這是兩件事。<br>
+而且它常常太敏感：資料形狀不夠像鐘形，或資料筆數很多時，就算只差一點點，它也會說「不一樣」。<br>
+就算各類真的不一樣，QDA 要多估很多數字，資料不夠多時反而容易估歪，分得比 LDA 還差。<br>
+所以我們不靠檢定猜，而是讓兩個方法考同一份試，誰答對得多就用誰。</div>
+
+平均分數的差距與勝出次數只描述這組資料的結果，不當成統計優越性或獨立測試結果。
 
 ## 11｜iris 實作驗證與成果 {#results}
 
@@ -389,7 +393,7 @@ legend("topleft", legend = group_names, col = palette, pch = 19,
 
 <p class="diagram-caption">圖 3　花瓣長度與寬度的分組散布圖。這是四個 X 中兩個欄位的視覺化，不是四維分類邊界。</p>
 
-Setosa 在花瓣測量上較容易分離，versicolor 與 virginica 有重疊。資料有 `r dup_count` 筆超出首次出現的完全相同紀錄；依組內各變數 1.5 IQR 規則，標記 `r length(outlier_rows)` 筆觀測。**全部保留**，相同測量值也不能單憑資料表認定為同一個體。
+setosa 和另外兩種花分得很開，versicolor 和 virginica 有部分重疊。
 
 ### 假設診斷
 
@@ -526,45 +530,48 @@ table_html(data.frame(
 這個 Skill 的成果，不只有分類分數，也包含：明確的分析路徑、會停下來問人的關卡與白話選項、不洩漏的驗證與補值、實際計算依據，以及可追溯的限制與失敗紀錄。
 :::
 
+## 13｜參考資料 {#references}
+
+**原始文獻**
+
+- Fisher, R. A. (1936). The use of multiple measurements in taxonomic problems. *Annals of Eugenics*, 7(2), 179–188.
+- Box, G. E. P. (1949). A general distribution theory for a class of likelihood criteria. *Biometrika*, 36(3/4), 317–346.
+- Mardia, K. V. (1970). Measures of multivariate skewness and kurtosis with applications. *Biometrika*, 57(3), 519–530.
+
+**教科書**（作者官方網站提供免費 PDF）
+
+- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.), §4.3 線性與二次區別分析. Springer. [官方網站](https://hastie.su.domains/ElemStatLearn/)
+- James, G., Witten, D., Hastie, T., & Tibshirani, R. (2021). *An Introduction to Statistical Learning with Applications in R* (2nd ed.), §4.4 LDA 與 QDA. Springer. [官方網站](https://www.statlearning.com/)
+
+**軟體文件與資料**
+
+- [MASS：LDA 官方文件](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/lda.html)、[MASS：QDA 官方文件](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/qda.html)
+- 實作比對：[biotools::boxM](https://search.r-project.org/CRAN/refmans/biotools/html/boxM.html)、[MVN::mardia](https://github.com/selcukorkmaz/MVN/blob/master/R/mardia.R)
+- [scikit-learn：交叉驗證與分組切分](https://scikit-learn.org/stable/modules/cross_validation.html)、[常見陷阱：資料洩漏](https://scikit-learn.org/stable/common_pitfalls.html)
+- [R：iris 資料來源與欄位](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/iris.html)
+
 <p class="part-label">附錄</p>
 
-## 附錄 A｜使用方式與檔案分工 {#usage}
+## 附錄 A｜在 Claude 上使用這個 skill {#usage}
 
-安裝 skill 時上傳 `discriminant-analysis.zip`（或把 `discriminant-analysis/` 放進 skills 目錄）；只需要 R 與內建的 MASS。R 負責分析；Quarto（RStudio 內建）負責把 `.qmd` 轉成 `.html`，需要另外安裝 R 套件 `knitr` 與 `rmarkdown`。可用命令列一鍵執行、在 RStudio 載入函式，或讓 AI 依 `SKILL.md` 操作。
+在 Claude 網頁版或 App 上依下列步驟操作，不需要自己寫程式。
 
-> 請依這個專案的 SKILL.md 分析 iris.csv。以 Species 為 Y、其餘四個數值欄位為 X，使用 seed＝2026 的分層 5-fold 重複 10 次比較 LDA／QDA。需要更動資料時先詢問，最後說明模型建議、限制與輸出位置。
-
-| 檔案 | 分工 |
+| 步驟 | 怎麼做 |
 |---|---|
-| `SKILL.md` | 主流程、確認關卡、解說重點與 demo 結果 |
-| `scripts/lda_qda_pipeline.R` | 命令列一鍵執行：選 X、變數介紹、完整分析與輸出 |
-| `scripts/run_analysis.R` | 核心計算：模型、診斷、圖、報告與檔案輸出 |
-| `references/decision-tree.md` | 資料問題與模型可行性的決策分支 |
-| `references/lda-qda-guide.md` | 方法比較、公式、輸出解讀與參考資料 |
-| `references/evaluation.md` | 切分、評估指標與比較限制 |
-| `assets/iris.csv`、`assets/iris_missing.csv` 與欄位說明檔 | 兩個可重現的示範資料（乾淨資料、有空格的資料） |
-| `demo_iris/`、`demo_iris_missing/` | 兩個示範的完整輸出 |
-| `tests/validate.R` | 程式、命令列與檔案讀寫驗收 |
+| 1. 下載 skill | 到本專案的 GitHub 頁面下載 `discriminant-analysis.zip`，**不用解壓縮**。壓縮檔裡是一個 `discriminant-analysis/` 資料夾，`SKILL.md` 就在這個資料夾裡 |
+| 2. 打開程式執行功能 | 在 Claude 的「Settings → Capabilities」打開「Code execution and file creation」（新版設定稱為「Create and edit files」）。skill 需要執行程式，這一項必須開啟 |
+| 3. 上傳 skill | 到「Customize → Skills」，按「＋」→「Create skill」→「Upload a skill」，選擇剛才的 zip；上傳後確認它在清單中是開啟的 |
+| 4. 開始分析 | 開一個新對話，上傳資料（CSV 檔，每一列一筆資料、第一列是欄位名稱），輸入「幫我用這份資料做區別分析」 |
+| 5. 回答 Claude 的問題 | 沒說明要分類哪一欄時，Claude 會先問；接著列出打算用來判斷的欄位請你確認，並確認同一個對象會不會有好幾筆。X 有空格時會問要不要補中位數；Y 有空格則會停止並說明 |
+| 6. 拿到結果 | 中文分析報告 `report.html`、含 R 程式碼的報告原始檔 `report.qmd`，以及圖和表格 |
 
-<details>
-<summary>報告展示時可使用的最小執行範例</summary>
+<div class="report-note"><strong>注意事項</strong><br>
+① 本 Skill 使用 R 進行統計分析，需確認執行環境支援 R 及必要套件。若目前環境不支援，則需改在已安裝 R 的環境執行，例如使用 Claude Code 搭配本機 R。<br>
+② 依 Claude 官方說明，Free、Pro、Max、Ultra、Team、Enterprise 方案都可以使用 skills。Team、Enterprise 帳號若找不到上傳選項，可能是管理員關閉了這項功能，請洽管理員。<br>
+③ 想先看看結果長什麼樣子，可以直接打開 GitHub 上的 `demo_iris/report.html`，那是用 iris 實際跑出來的報告。<br>
+④ 官方操作說明：<a href="https://support.claude.com/en/articles/12512180-use-skills-in-claude">Use skills in Claude</a>、<a href="https://support.claude.com/en/articles/12512198">How to create custom skills</a>。介面名稱可能隨版本調整，以官方說明為準。</div>
 
-```bash
-cd discriminant-analysis
-Rscript scripts/lda_qda_pipeline.R assets/iris.csv --target Species --out my_iris_result
-# 有空格的資料：使用者同意補值後才加 --impute median
-Rscript scripts/lda_qda_pipeline.R assets/iris_missing.csv --target Species --impute median --out my_iris_missing_result
-```
-
-`demo_iris/`、`demo_iris_missing/` 是已經跑好的結果，可以直接打開。
-
-輸出兩種中文報告：`report.html`（R 直接寫出、一定會有）與 `report.qmd`（含 R 程式碼區塊，在 RStudio 按 Render 會重新計算，輸出 `report-quarto.html`）；另有 6 張圖、各表 CSV、`report.txt` 與 `summary.json`。輸出資料夾已存在時停止，以保留舊結果。
-
-</details>
-
-**本頁是 Skill 設計與示範驗證的報告。** 每次分析另外會產生該資料的 `report.html` 與含 R 程式碼的 `report.qmd`；尚未產生 PDF。
-
-## 附錄 B｜可重現性、驗收與參考資料 {#reproducibility}
+## 附錄 B｜可重現性與驗收 {#reproducibility}
 
 本頁在 Render 時重新讀取示範 CSV、呼叫既有分析函式，表格與圖形由 R 實際生成；流程圖以內嵌 SVG 呈現，可離線閱讀，不依賴線上 Mermaid 服務。
 
@@ -578,16 +585,24 @@ Rscript scripts/lda_qda_pipeline.R assets/iris_missing.csv --target Species --im
 `tests/validate.R` 完成 136 項程式驗收（含 Mardia／Box's M 與 MVN 6.3／biotools 4.3 實測值比對、合併解讀與自動註記、命令列入口、重複交叉驗證、各折補值不洩漏、選擇規則、驗證不完整的處理、固定 5 折 × 10 次與停止條件），並做過一次依參考文件執行的完整 iris 試跑；這份報告另外重新計算示範結果。**程式驗收、示範資料通過與所有資料皆適用，是不同的驗證範圍。**
 
 
-### 方法依據
 
-- [MASS：LDA 官方文件](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/lda.html)
-- [MASS：QDA 官方文件](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/qda.html)
-- Mardia, K. V. (1970). Measures of multivariate skewness and kurtosis with applications. *Biometrika*, 57(3), 519–530.
-- Box, G. E. P. (1949). A general distribution theory for a class of likelihood criteria. *Biometrika*, 36(3/4), 317–346.
-- 實作比對：[biotools::boxM](https://search.r-project.org/CRAN/refmans/biotools/html/boxM.html)、[MVN::mardia](https://github.com/selcukorkmaz/MVN/blob/master/R/mardia.R)
-- Hastie, T., Tibshirani, R., & Friedman, J. (2009). *The Elements of Statistical Learning* (2nd ed.), §4.3 線性與二次區別分析. Springer.
-- [scikit-learn：交叉驗證與分組切分](https://scikit-learn.org/stable/modules/cross_validation.html)、[常見陷阱：資料洩漏](https://scikit-learn.org/stable/common_pitfalls.html)
-- [R：iris 資料來源與欄位](https://stat.ethz.ch/R-manual/R-devel/library/datasets/html/iris.html)
+## 附錄 C｜LDA 與 QDA 的判別函數 {#formulas}
+
+兩者都來自「分到機率最大的那一類」（Bayes 規則），再假設每一類是多元常態 $N_p(\boldsymbol\mu_k,\boldsymbol\Sigma_k)$；$\pi_k$ 是第 $k$ 類的先驗機率。新資料 $\mathbf x$ 分到判別分數 $\delta_k(\mathbf x)$ 最大的那一類。
+
+**QDA**：每一類有自己的共變異數矩陣 $\boldsymbol\Sigma_k$，
+
+$$
+\delta_k^{Q}(\mathbf x)=-\tfrac12\log|\boldsymbol\Sigma_k|-\tfrac12(\mathbf x-\boldsymbol\mu_k)^\top\boldsymbol\Sigma_k^{-1}(\mathbf x-\boldsymbol\mu_k)+\log\pi_k .
+$$
+
+**LDA**：再假設所有類別共用 $\boldsymbol\Sigma_k=\boldsymbol\Sigma$，含 $\mathbf x^\top\boldsymbol\Sigma^{-1}\mathbf x$ 的二次項對每一類都一樣而消去，判別函數變成 $\mathbf x$ 的線性函數，分界因此是直線（超平面）：
+
+$$
+\delta_k^{L}(\mathbf x)=\mathbf x^\top\boldsymbol\Sigma^{-1}\boldsymbol\mu_k-\tfrac12\boldsymbol\mu_k^\top\boldsymbol\Sigma^{-1}\boldsymbol\mu_k+\log\pi_k .
+$$
+
+Box's M 檢定的就是 $\boldsymbol\Sigma_1=\cdots=\boldsymbol\Sigma_K$ 是否成立。估計量、Mardia 與 Box's M 的完整公式見 `references/lda-qda-guide.md`。
 
 <div class="report-footer">
 多變量分析（區別分析）｜LDA／QDA Skill 流程設計與實作驗證<br>

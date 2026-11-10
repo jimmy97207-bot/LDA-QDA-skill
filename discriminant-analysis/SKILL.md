@@ -1,6 +1,6 @@
 ---
 name: discriminant-analysis
-description: 用 R 進行線性區別分析（LDA）與二次區別分析（QDA）：已知類別的監督式分類，包含變數介紹、資料檢查、分組 EDA、多元常態（Mardia）與共變異數同質性（Box's M）診斷、模型可估計性檢查、重複分層交叉驗證比較 LDA／QDA，並輸出繁體中文報告、表格與圖。當使用者提到區別分析、判別分析、判別函數、Fisher 判別、LDA、QDA、線性／二次區別、共變異數同質性、Box's M、Mardia、多元常態、用多個變數判斷類別時使用。Use for linear and quadratic discriminant analysis (LDA/QDA, Fisher discriminant) in R. 不適用於主題模型的 Latent Dirichlet Allocation。
+description: 用 R 做 LDA／QDA 區別分析：以多個數值變數判斷已知類別，含資料檢查、Mardia 與 Box's M 診斷、重複交叉驗證比較兩法，輸出繁體中文報告。使用者提到區別分析、判別分析、LDA、QDA、Fisher 判別時使用；不適用於主題模型的 LDA。
 ---
 
 # LDA／QDA 區別分析 Skill
@@ -10,6 +10,21 @@ description: 用 R 進行線性區別分析（LDA）與二次區別分析（QDA�
 **① 使用者指定 Y → ② AI 提出 X 清單請使用者確認，並檢查資料 → ③ 執行分析程式 → ④ 資料能直接用嗎 → ⑤ 檢查資料假設（Mardia、Box's M，只作診斷） → ⑥ LDA、QDA 算得出來嗎 → ⑦ 分層 5-fold 重複 10 次比較兩種方法 → ⑧ 用全部資料建立最終模型 → ⑨ 交付報告（report.html ＋ report.qmd）**
 
 採半自動：Y 由使用者指定；AI 自動提出 X 清單，使用者確認後才執行分析（使用者已指定 X 時不再問）。資料乾淨時，確認完 Y 和 X 就一路跑完；其餘只在遇到下方關卡 C–F 時詢問或停止。設計原則是**固定且可解釋的流程**：AI 不合併或刪除類別、不自行改模型、不改變研究問題；做不到就停下來說明原因。已提供的資訊不重複詢問。
+
+## 環境準備（每次開始前）
+
+這個 skill 用 R 執行。開始分析前先檢查：
+
+```bash
+Rscript -e 'cat(R.version.string, as.character(packageVersion("MASS")), "\n")'
+```
+
+- 有輸出 R 與 MASS 版本：直接進行。
+- 找不到 R：先告訴使用者「需要先安裝 R，約一兩分鐘」，再嘗試安裝（Debian／Ubuntu 環境：`apt-get install -y r-base-core r-cran-mass`，必要時加 `sudo`）；中文欄位或檔名出錯時，執行指令前加 `LC_ALL=C.UTF-8`。
+- 安裝失敗（例如沒有網路或沒有權限）：不要改用其他語言自行重寫分析，也不要假裝有結果；明確告訴使用者目前環境無法執行 R，建議改在已安裝 R（>= 4.3）的電腦上用 Claude Code 執行。
+- 要產生 `report-quarto.html` 才需要 Quarto 與 R 套件 knitr、rmarkdown；沒有時只交付 `report.html` 與 `report.qmd`，並說明 `.qmd` 可在 RStudio 按 Render。
+
+## 快速索引
 
 | 需要什麼 | 去哪裡 |
 |---|---|
@@ -196,7 +211,7 @@ Rscript scripts/lda_qda_pipeline.R assets/iris.csv --target Species --out my_iri
 Rscript scripts/lda_qda_pipeline.R assets/iris_missing.csv --target Species --impute median --out my_iris_missing_result
 ```
 
-`demo_iris/`、`demo_iris_missing/` 是已經跑好的結果；輸出資料夾已存在時程式會停止，所以重跑要用新的名稱。
+這兩個 demo 跑好的完整結果放在 GitHub repo 的 `demo_iris/`、`demo_iris_missing/`（不包含在 skill 的 zip 裡）；skill 內可參考 `references/pipeline_output_iris.txt`、`references/pipeline_output_iris_missing.txt` 的主控台輸出。輸出資料夾已存在時程式會停止，所以重跑要用新的名稱。
 
 | 資料 | 要分類什麼 | 筆數 | X | 示範什麼 |
 |---|---|---|---|---|

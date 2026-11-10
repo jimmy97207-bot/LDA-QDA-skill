@@ -102,9 +102,15 @@ assets/iris.csv (+ iris_dictionary.csv)
 
 ## 安裝與使用
 
-### 作為 Claude Skill
+### 在 Claude 上使用（不用寫程式）
 
-將 `discriminant-analysis/` 資料夾放進 Claude 的 skills 目錄，或在 Claude 的 Skill 設定中上傳 `discriminant-analysis.zip`。
+1. 下載 `discriminant-analysis.zip`（不用解壓縮）。
+2. 在 Claude 的「Settings → Capabilities」打開「Code execution and file creation」（新版設定叫「Create and edit files」）。
+3. 到「Customize → Skills」，按「＋」→「Create skill」→「Upload a skill」，上傳 zip，並確認它是開啟的。
+4. 開新對話，上傳 CSV，輸入「幫我用這份資料做區別分析」。
+5. 回答 Claude 的確認問題（分類的欄位、判斷用的欄位、是否同一對象多筆、空格是否補值），最後拿到 `report.html` 等結果。
+
+這個 skill 用 R 分析；Claude 的執行環境沒有 R 時會先嘗試安裝，無法安裝時會說明，可改在已安裝 R 的電腦上用 Claude Code 執行（把 `discriminant-analysis/` 放進 skills 資料夾）。Team／Enterprise 帳號需要管理員開放建立 skill 的權限。參考：[Use skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)。
 
 ### 直接執行
 
