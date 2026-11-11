@@ -4,6 +4,7 @@ Description: iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，�
 Dictionary: assets/iris_missing_dictionary.csv
 Y: Species | classes: setosa=50, versicolor=50, virginica=50
 X (4): Sepal.Length, Sepal.Width, Petal.Length, Petal.Width
+NOTE 1 row(s) identical in Y and X to an earlier row (row=earlier row: 143=102; rows counted without the header), 0.7% of the data; kept.
 
 -- Data checks --
   missing_cells                      30  Sepal.Length=13, Sepal.Width=5, Petal.Length=5, Petal.Width=7

@@ -498,6 +498,35 @@ check(startsWith(purpose_text(vi_case),
       !has("\u7368\u7acb\u6a23\u672c", conclusion_lines(blocked)),
       any(grepl("conclusion_lines(result)", qmd, fixed = TRUE)),
       any(grepl("diagnostic_outcome(result)$full", qmd, fixed = TRUE)))
+# Exact duplicate rows: --plan notes them (<= 5%) or asks to pause (> 5%);
+# --dedup removes them only when asked and the report says which rows.
+pipe <- file.path(project, "scripts", "lda_qda_pipeline.R")
+iris_csv <- file.path(project, "assets", "iris.csv")
+plan_iris <- suppressWarnings(system2(rscript, c(shQuote(pipe), shQuote(iris_csv),
+  "--plan"), stdout = TRUE, stderr = TRUE))
+dup_csv <- file.path(run_dir, "iris_dup.csv")
+utils::write.csv(rbind(iris, iris[1:10, ]), dup_csv, row.names = FALSE)
+plan_dup <- suppressWarnings(system2(rscript, c(shQuote(pipe), shQuote(dup_csv),
+  "--plan", "--target", "Species"), stdout = TRUE, stderr = TRUE))
+dedup_out <- file.path(run_dir, "cli-dedup")
+st_dedup <- system2(rscript, c(shQuote(pipe), shQuote(iris_csv), "--target", "Species",
+  "--dedup", "--out", shQuote(dedup_out)), stdout = FALSE, stderr = FALSE)
+dd_md <- readLines(file.path(dedup_out, "report.md"), encoding = "UTF-8")
+dd_qmd <- readLines(file.path(dedup_out, "report.qmd"), encoding = "UTF-8")
+dd_json <- readLines(file.path(dedup_out, "summary.json"), encoding = "UTF-8")
+check(any(grepl("^NOTE: 1 row\\(s\\) identical .*143=102", plan_iris)),
+      any(grepl("^CONFIRM: 11 row\\(s\\) identical", plan_dup)),
+      st_dedup == 0L,
+      any(grepl("- \u6a23\u672c\u6578\uff1a149", dd_md, fixed = TRUE)),
+      any(grepl("\u4f9d\u4f7f\u7528\u8005\u78ba\u8a8d\u522a\u9664 1 \u7b46\u91cd\u8907\u767b\u9304\uff08\u539f\u59cb\u8cc7\u6599\u7b2c 143 \u7b46\uff09", dd_md, fixed = TRUE)),
+      any(grepl("removed_duplicates = c(143)", dd_qmd, fixed = TRUE)),
+      any(grepl('"removed_duplicate_rows": [143]', dd_json, fixed = TRUE)),
+      length(readLines(file.path(dedup_out, "input_data.csv"))) == 150L,
+      any(grepl("- \u8cc7\u6599\u8655\u7406\uff1a\u672a\u522a\u9664\u89c0\u6e2c\u503c\u3001\u672a\u63d2\u88dc\u7f3a\u5931\u503c\u6216\u8f49\u63db\u8b8a\u6578\u3002", md, fixed = TRUE)))
+# report.qmd passes folds = 5 (a double); fold ids must still work when a class
+# size is not a multiple of 5.
+check(identical(run_pipeline(iris[-143, ], "Species", x, folds = 5)$metrics,
+                run_pipeline(iris[-143, ], "Species", x, folds = 5L)$metrics))
 summary <- c(
   "# LDA\uff0fQDA \u539f\u578b\u9a57\u6536", "",
   paste0("- \u901a\u904e\u6aa2\u67e5\u6578\uff1a", count),

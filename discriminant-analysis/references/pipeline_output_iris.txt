@@ -4,6 +4,7 @@ Description: R datasets::iris 原樣匯出；150 朵鳶尾花，三個品種各 
 Dictionary: assets/iris_dictionary.csv
 Y: Species | classes: setosa=50, versicolor=50, virginica=50
 X (4): Sepal.Length, Sepal.Width, Petal.Length, Petal.Width
+NOTE 1 row(s) identical in Y and X to an earlier row (row=earlier row: 143=102; rows counted without the header), 0.7% of the data; kept.
 
 -- Data checks --
   observations                      150  3 classes, 4 predictors

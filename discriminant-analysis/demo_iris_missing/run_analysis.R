@@ -10,6 +10,7 @@
 stratified_folds <- function(Y, folds) {
   # Each class is spread over the folds; leftover observations rotate across
   # classes so the same fold does not receive every class's remainder.
+  folds <- as.integer(folds)  # "folds = 5" from report.qmd is a double
   fold_id <- integer(length(Y))
   offset <- 0L
   for (cl in levels(Y)) {
@@ -889,7 +890,10 @@ data_checks_display <- function(result) {
       classes_with_n_le_p = sub("^QDA not estimable for: ", "", note),
       zero_within_class_variance = note,
       duplicate_rows = if (isTRUE(value > 0)) paste0("數值相同不必然代表同一個體或標本；",
-        "本次保留，是否為重複登錄仍需依原始紀錄確認") else "本資料沒有",
+        "本次保留，是否為重複登錄仍需依原始紀錄確認")
+        else if (length(result$settings$removed_duplicates)) paste0("已依使用者確認刪除 ",
+          length(result$settings$removed_duplicates), " 筆重複登錄")
+        else "本資料沒有",
       "")
     if (is.na(detail)) detail <- ""
     shown <- if (ck == "full_rank_X") ifelse(value == 1, "是", "否") else format(value)
@@ -1380,6 +1384,7 @@ conclusion_lines <- function(result) {
       "。這些是逐一變數的描述，有助於理解誤判集中在哪些類別，但不代表個別變數在模型中的獨立貢獻最大。"))
   if (length(mis) == 0L || !length(done)) mis <- "沒有完整的驗證結果，無法判斷哪些類別容易誤判。"
   dc_rows <- result$data_checks
+  rm_dup <- result$settings$removed_duplicates
   dup <- if (is.data.frame(dc_rows) && any(dc_rows$check == "duplicate_rows"))
     dc_rows$value[dc_rows$check == "duplicate_rows"][1] else 0
   lim <- paste0("- ", c(
@@ -1392,6 +1397,9 @@ conclusion_lines <- function(result) {
     "本報告沒有計算變數重要性或判別係數的不確定性，不宜據此判斷哪個變數最重要。",
     if (isTRUE(dup > 0)) paste0("資料中有 ", dup, " 筆與其他列的 Y 和 X 完全相同，已保留；",
       "數值相同不必然代表同一個體或標本，是否為重複登錄仍需依原始紀錄確認。"),
+    if (length(rm_dup)) paste0("依使用者確認，分析前刪除了 ", length(rm_dup),
+      " 筆與其他列完全相同的重複登錄（原始資料第 ", row_list(rm_dup),
+      " 筆）；分析樣本為 ", N, " 筆。"),
     if (imputed) "X 的空格以各訓練折的中位數補值；補值方式可能影響結果，本報告未與其他補值方式比較。",
     "本版處理獨立觀測與數值型預測變數，使用重複分層交叉驗證（固定 5 折、10 次）。",
     "各類別診斷有多個檢定，p 值以診斷用途呈現，未進行多重比較校正。"))
@@ -1402,6 +1410,22 @@ conclusion_lines <- function(result) {
     "### 哪些類別容易誤判", "", mis, "",
     "### 假設診斷對結果的影響", "", diagnostic_outcome(result)$short, "",
     "### 限制", "", lim)
+}
+
+row_list <- function(rows, max = 20L)
+  paste0(paste(utils::head(rows, max), collapse = "、"),
+         if (length(rows) > max) " 等" else "")
+
+data_handling_line <- function(result) {
+  rm_dup <- result$settings$removed_duplicates
+  imputed <- identical(result$settings$impute, "median") &&
+    isTRUE(result$settings$missing_cells > 0)
+  dropped <- if (length(rm_dup)) paste0("依使用者確認刪除 ", length(rm_dup),
+    " 筆重複登錄（原始資料第 ", row_list(rm_dup), " 筆），其餘觀測值未刪除")
+    else "未刪除觀測值"
+  paste0("- 資料處理：", dropped,
+    if (imputed) "、未轉換變數；缺失值依使用者同意在各練習資料內補中位數。"
+    else "、未插補缺失值或轉換變數。")
 }
 
 make_report <- function(result) {
@@ -1486,9 +1510,7 @@ make_report <- function(result) {
            " 輪練習／考試）；隨機種子：", result$settings$seed),
     "- 主要指標：Macro recall（各類別召回率的等權平均，即平衡正確率）。",
     "- 先驗機率：由各訓練折的類別比例估計。",
-    if (identical(result$settings$impute, "median") && result$settings$missing_cells > 0)
-      "- 資料處理：未刪除觀測值或轉換變數；缺失值依使用者同意在各練習資料內補中位數。"
-    else "- 資料處理：未刪除觀測值、插補缺失值或轉換變數。",
+    data_handling_line(result),
     paste0("- 軟體：", result$settings$R, "；MASS ", result$settings$MASS,
            "；診斷：", result$settings$diagnostic_method), "",
     "### 各類別筆數", "", guide$class_counts, "",
@@ -1528,7 +1550,8 @@ make_report <- function(result) {
 
 run_pipeline <- function(data, y, x, folds = 5L, repeats = 10L, seed = 2026L,
                          variable_info = NULL, dataset_description = NULL,
-                         impute = c("none", "median")) {
+                         impute = c("none", "median"),
+                         removed_duplicates = integer()) {
   impute <- match.arg(impute)
   if (is.character(data) && length(data) == 1L)
     data <- read.csv(data, check.names = FALSE, fileEncoding = "UTF-8-BOM")
@@ -1558,6 +1581,9 @@ run_pipeline <- function(data, y, x, folds = 5L, repeats = 10L, seed = 2026L,
   result$settings$diagnostic_method <-
     "base R (Mardia 1970; Box's M chi-square approximation)"
   result$diagnostic_raw <- checks$raw
+  # Rows the user confirmed as double entries and removed before the run
+  # (row numbers in the original file, header not counted).
+  result$settings$removed_duplicates <- as.integer(removed_duplicates)
   if (!is.null(variable_info)) result$variable_info <- variable_info
   if (!is.null(dataset_description))
     result$dataset_description <- dataset_description
@@ -1743,6 +1769,9 @@ write_report_qmd <- function(result, out, title = "LDA／QDA 分析報告") {
       "  variable_info = variable_info,",
       paste0("  impute = ", q(if (is.null(result$settings$impute)) "none" else
                                result$settings$impute), ","),
+      if (length(result$settings$removed_duplicates))
+        paste0("  removed_duplicates = c(",
+               paste(result$settings$removed_duplicates, collapse = ", "), "),"),
       paste0("  dataset_description = ", q(result$dataset_description), ")"),
       "guide <- report_guides(result)"),
       "label: setup"),

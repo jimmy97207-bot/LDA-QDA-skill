@@ -10,6 +10,8 @@
   "selection_gap": 0.01533333,
   "wins": {"lda": 1, "qda": 8, "tie": 1},
   "suspect_id_columns": [],
+  "duplicate_rows": 1,
+  "removed_duplicate_rows": [],
   "possible_repeated_ids": [],
   "impute": "median",
   "metrics": {

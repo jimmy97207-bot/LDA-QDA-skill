@@ -3,10 +3,13 @@
 # Usage (from the skill folder):
 #   Rscript scripts/lda_qda_pipeline.R data.csv --target <Y>
 #           [--x a,b,c] [--drop id,other] [--dict data_dictionary.csv]
-#           [--seed 2026] [--impute none|median] [--out lda_qda_<name>]
+#           [--seed 2026] [--impute none|median] [--dedup] [--out lda_qda_<name>]
 #   Rscript scripts/lda_qda_pipeline.R data.csv --plan [--target <Y>]
 #           Prints candidate Y columns and the proposed X list (with columns
-#           to confirm), then exits without analysing. Used for checkpoints A/B.
+#           to confirm, and rows identical in Y and X), then exits without
+#           analysing. Used for checkpoints A/B/C.
+#   --dedup   Remove rows identical to an earlier row in Y and X. Only when the
+#             user has confirmed they are double entries; recorded in the report.
 #
 # Validation is fixed: stratified 5-fold CV repeated 10 times (new random
 # folds each repeat). Every class needs >= 5 rows, otherwise the run stops and
@@ -17,7 +20,8 @@
 # report.html, report.qmd, report.md, CSV tables, RDS models, figures/*.png,
 # report.txt, summary.json.
 # Nothing in the data is deleted or transformed; X is imputed only with
-# --impute median (fold-wise training medians).
+# --impute median (fold-wise training medians), and duplicate rows are removed
+# only with --dedup.
 
 if (.Platform$OS.type == "windows" && !isTRUE(l10n_info()[["UTF-8"]]))
   invisible(Sys.setlocale("LC_CTYPE", "English_United States.utf8"))
@@ -32,7 +36,7 @@ source(file.path(script_dir, "run_analysis.R"), encoding = "UTF-8")
 usage <- paste(
   "Usage: Rscript scripts/lda_qda_pipeline.R data.csv --target Y",
   "[--x a,b,c] [--drop id] [--dict dict.csv] [--seed 2026]",
-  "[--impute none|median] [--out dir]",
+  "[--impute none|median] [--dedup] [--out dir]",
   "Rscript scripts/lda_qda_pipeline.R data.csv --plan [--target Y]",
   sep = "\n       ")
 
@@ -44,6 +48,7 @@ parse_args <- function(args) {
     a <- args[[i]]
     if (a %in% c("-h", "--help")) { cat(usage, "\n"); quit(status = 0) }
     if (a == "--plan") { opts$plan <- TRUE; i <- i + 1L; next }
+    if (a == "--dedup") { opts$dedup <- TRUE; i <- i + 1L; next }
     if (startsWith(a, "--")) {
       key <- sub("^--", "", a)
       if (grepl("=", key)) {
@@ -63,7 +68,7 @@ parse_args <- function(args) {
     stop("This version always uses stratified 5-fold CV; --folds is not available.")
   if (!is.null(opts$repeats))
     stop("This version always repeats the 5-fold CV 10 times; --repeats is not available.")
-  known <- c("target", "x", "drop", "dict", "seed", "out", "impute", "plan")
+  known <- c("target", "x", "drop", "dict", "seed", "out", "impute", "plan", "dedup")
   bad <- setdiff(names(opts), known)
   if (length(bad)) stop("Unknown option(s): ", paste(bad, collapse = ", "))
   opts$csv <- positional
@@ -161,6 +166,21 @@ if (length(opts$x)) {
 }
 suspect_ids <- names(roles)[grepl("疑似編號", roles)]
 
+# Rows identical to an earlier row in Y and every X. Kept by default; above
+# 5% of the rows the AI pauses and asks (checkpoint C) before analysing.
+dup_share_limit <- 0.05
+dup_rows <- if (length(x)) which(duplicated(data[c(y, x)])) else integer()
+dup_text <- if (length(dup_rows)) {
+  key <- do.call(paste, c(lapply(data[c(y, x)], as.character), sep = "\r"))
+  first <- match(key[dup_rows], key)
+  pairs <- paste0(dup_rows, "=", first)
+  paste0(length(dup_rows), " row(s) identical in Y and X to an earlier row (row=earlier row: ",
+         paste(utils::head(pairs, 20), collapse = ", "), if (length(pairs) > 20) ", ..." else "",
+         "; rows counted without the header), ",
+         sprintf("%.1f%%", 100 * length(dup_rows) / nrow(data)), " of the data")
+} else ""
+dup_many <- length(dup_rows) > dup_share_limit * nrow(data)
+
 if (plan_mode) {
   cat("== Plan (nothing analysed) ==\n")
   cat("Data:", csv, "(", nrow(data), "rows,", ncol(data), "columns )\n")
@@ -183,6 +203,11 @@ if (plan_mode) {
   if (length(rep_ids))
     cat("CONFIRM: ", paste(rep_ids, collapse = ", "),
         " has repeated values; one subject may have several rows (checkpoint C).\n", sep = "")
+  if (length(dup_rows))
+    cat(if (dup_many) "CONFIRM: " else "NOTE: ", dup_text,
+        if (dup_many) ". More than 5%: pause and ask whether these are double entries (checkpoint C) before analysing.\n"
+        else ". Kept by default; mention it in question 2 and use --dedup only if the user says they are double entries.\n",
+        sep = "")
   if (length(bad_y))
     cat("STOP: Y (", y, ") has ", length(bad_y), " missing or blank row(s): ",
         paste(utils::head(bad_y, 20), collapse = ", "),
@@ -246,12 +271,24 @@ if (length(dup_ids))
 if (length(time_cols))
   say("WARNING date/time column(s) present: ", paste(time_cols, collapse = ", "),
       ". Confirm rows are independent (SKILL.md checkpoint C).")
+removed <- integer()
+if (length(dup_rows)) {
+  if (isTRUE(opts$dedup)) {
+    removed <- dup_rows
+    data <- data[-dup_rows, , drop = FALSE]
+    rownames(data) <- NULL
+    say("Removed (--dedup, user confirmed double entries): ", dup_text, ".")
+  } else {
+    say(if (dup_many) "WARNING " else "NOTE ", dup_text, "; kept",
+        if (dup_many) ". More than 5% of the data: confirm with the user (SKILL.md checkpoint C)." else ".")
+  }
+}
 seed <- as.integer(opts$seed)
 if (!opts$impute %in% c("none", "median")) stop("--impute must be none or median.")
 result <- run_pipeline(data, y, x, folds = folds, seed = seed,
                        variable_info = variable_info,
                        dataset_description = dataset_description,
-                       impute = opts$impute)
+                       impute = opts$impute, removed_duplicates = removed)
 
 say("")
 say("-- Data checks --")
@@ -314,7 +351,11 @@ invisible(file.copy(file.path(fig_tmp, result$figures), file.path(out, "figures"
 # Reports for people: report.html (direct, no Quarto) and report.qmd (live R
 # chunks; Render recomputes from the copied data and analysis code).
 write_report_html(result, out)
-invisible(file.copy(csv, file.path(out, "input_data.csv")))
+# input_data.csv is the data actually analysed (after --dedup, if used).
+if (length(removed)) {
+  utils::write.csv(data, file.path(out, "input_data.csv"), row.names = FALSE,
+                   fileEncoding = "UTF-8")
+} else invisible(file.copy(csv, file.path(out, "input_data.csv")))
 invisible(file.copy(file.path(script_dir, "run_analysis.R"),
                     file.path(out, "run_analysis.R")))
 write_report_qmd(result, out, title = paste0("LDA／QDA 分析報告：", stem))
@@ -341,6 +382,8 @@ summary_json <- c(
          ', "qda": ', json_value(result$selection_wins[["qda"]]),
          ', "tie": ', json_value(result$selection_wins[["tie"]]), "},"),
   paste0('  "suspect_id_columns": [', paste(vapply(suspect_ids, json_value, ""), collapse = ", "), "],"),
+  paste0('  "duplicate_rows": ', length(dup_rows), ","),
+  paste0('  "removed_duplicate_rows": [', paste(removed, collapse = ", "), "],"),
   paste0('  "possible_repeated_ids": [', paste(vapply(dup_ids, json_value, ""), collapse = ", "), "],"),
   paste0('  "impute": ', json_value(opts$impute), ","),
   '  "metrics": {',
