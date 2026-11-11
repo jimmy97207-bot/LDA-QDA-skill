@@ -60,7 +60,7 @@ Claude Skill：針對已知類別的表格資料（CSV），以 R 完成「變�
 │   │   ├── figures/                         #   6 張圖
 │   │   └── *.csv、*.rds                     #   表格、模型與設定
 │   └── tests/
-│       └── validate.R                       # 程式驗收（147 項檢查）
+│       └── validate.R                       # 程式驗收（148 項檢查）
 └── materials/                               # Skill 說明報告
     ├── make-skill-tutorial.qmd              # 上台報告原始檔（Quarto）
     ├── make-skill-tutorial.html             # 上台報告 Render 輸出

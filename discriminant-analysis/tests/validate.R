@@ -527,6 +527,13 @@ check(any(grepl("^NOTE: 1 row\\(s\\) identical .*143=102", plan_iris)),
 # size is not a multiple of 5.
 check(identical(run_pipeline(iris[-143, ], "Species", x, folds = 5)$metrics,
                 run_pipeline(iris[-143, ], "Species", x, folds = 5L)$metrics))
+# --plan flags date/time columns for checkpoint C before anything is analysed.
+date_csv <- file.path(run_dir, "iris_date.csv")
+utils::write.csv(cbind(iris, visit_date = "2026-01-01"), date_csv, row.names = FALSE)
+plan_date <- suppressWarnings(system2(rscript, c(shQuote(pipe), shQuote(date_csv),
+  "--plan", "--target", "Species"), stdout = TRUE, stderr = TRUE))
+check(any(grepl("^CONFIRM: date/time column\\(s\\) visit_date", plan_date)),
+      !any(grepl("date/time", plan_iris)))
 summary <- c(
   "# LDA\uff0fQDA \u539f\u578b\u9a57\u6536", "",
   paste0("- \u901a\u904e\u6aa2\u67e5\u6578\uff1a", count),

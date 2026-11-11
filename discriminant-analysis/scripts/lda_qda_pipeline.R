@@ -180,6 +180,9 @@ dup_text <- if (length(dup_rows)) {
          sprintf("%.1f%%", 100 * length(dup_rows) / nrow(data)), " of the data")
 } else ""
 dup_many <- length(dup_rows) > dup_share_limit * nrow(data)
+# Date/time columns suggest repeated records over time (checkpoint C).
+time_cols <- names(data)[grepl("(date|time|日期|時間|年月)", names(data), ignore.case = TRUE) |
+  vapply(data, function(v) inherits(v, c("Date", "POSIXt")), logical(1))]
 
 if (plan_mode) {
   cat("== Plan (nothing analysed) ==\n")
@@ -203,6 +206,10 @@ if (plan_mode) {
   if (length(rep_ids))
     cat("CONFIRM: ", paste(rep_ids, collapse = ", "),
         " has repeated values; one subject may have several rows (checkpoint C).\n", sep = "")
+  if (length(time_cols))
+    cat("CONFIRM: date/time column(s) ", paste(time_cols, collapse = ", "),
+        "; rows may be repeated records of the same subject over time. ",
+        "Pause and confirm the unit of analysis (checkpoint C) before analysing.\n", sep = "")
   if (length(dup_rows))
     cat(if (dup_many) "CONFIRM: " else "NOTE: ", dup_text,
         if (dup_many) ". More than 5%: pause and ask whether these are double entries (checkpoint C) before analysing.\n"
@@ -262,8 +269,6 @@ if (any(class_n < folds))
 dup_ids <- names(data)[vapply(names(data), function(nm)
   grepl("(^id$|_id$|^id_|編號)", nm, ignore.case = TRUE) &&
     anyDuplicated(data[[nm]][!is.na(data[[nm]])]) > 0, logical(1))]
-time_cols <- names(data)[grepl("(date|time|日期|時間|年月)", names(data), ignore.case = TRUE) |
-  vapply(data, function(v) inherits(v, c("Date", "POSIXt")), logical(1))]
 if (length(dup_ids))
   say("WARNING possible repeated subjects: ID-like column(s) with repeated values: ",
       paste(dup_ids, collapse = ", "),
