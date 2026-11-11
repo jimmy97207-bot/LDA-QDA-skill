@@ -109,7 +109,7 @@ Rscript scripts/lda_qda_pipeline.R data.csv --target <Y> [--x a,b,c] [--drop id]
 | `--dict` | 欄位說明 CSV（`欄位,說明,單位,角色`；`__dataset__` 列寫資料描述）；省略時自動找 `<檔名>_dictionary.csv` |
 | `--seed` | 亂數種子（預設 2026）。驗證方式固定為分層 5-fold 重複 10 次，沒有 `--folds`、`--repeats` 參數 |
 | `--impute` | `none`（預設；X 有空格就停止）或 `median`（在每份練習資料內算中位數補值）；只有在使用者於關卡 D 選擇補值後才用 `median` |
-| `--dedup` | 刪除 Y 和 X 都與前面某列完全相同的列（保留第一筆）；只有使用者確認是重複登錄時才用。報告的「資料處理」、資料檢查與限制會寫出刪了哪幾筆，`summary.json` 記錄 `removed_duplicate_rows` |
+| `--dedup` | 刪除 Y 和 X 都與前面某列完全相同的列（保留第一筆）；只有使用者確認是重複登錄時才用。報告的「資料處理」與「限制」會寫出刪了哪幾筆（資料檢查表列出刪除筆數），`summary.json` 記錄 `removed_duplicate_rows` |
 | `--out` | 輸出資料夾（預設 `lda_qda_<檔名>`）；**已存在就停止**，避免覆蓋舊結果 |
 
 輸出：
@@ -133,8 +133,12 @@ result <- run_pipeline("assets/iris.csv", y = "Species",
                        seed = 2026)   # 固定 5 折 × 10 次
 result$metrics; result$diagnostics; result$data_checks
 cat(result$report_lines, sep = "\n")
-save_analysis(result, "output/iris-001")                       # 表格、模型、report.md
-save_figures(result, read.csv("assets/iris.csv"), "output/iris-001/figures")
+fig_tmp <- tempfile("figures-")                                # 先畫圖，報告才有「圖」一節
+result$figures <- save_figures(result, read.csv("assets/iris.csv"), fig_tmp)
+result$report_lines <- make_report(result)
+save_analysis(result, "output/iris-001")                       # 表格、模型、report.md（資料夾須不存在）
+dir.create("output/iris-001/figures")
+file.copy(file.path(fig_tmp, result$figures), "output/iris-001/figures")
 write_report_html(result, "output/iris-001")                   # report.html（圖片取自 figures/）
 ```
 
