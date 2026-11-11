@@ -2568,7 +2568,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </tr>
 <tr class="even">
 <td>各類別數量差很多</td>
-<td>改看「每一類各自答對多少」，避免大類別把分數撐高</td>
+<td>Macro recall 本來就是主要指標；類別數量差很多時特別要看它，不要只看整體正確率。但它只改變評分方式：模型的先驗機率仍依類別比例估計，會偏向大類別，小類別可能還是常被分錯，報告會照實呈現</td>
 </tr>
 <tr class="odd">
 <td>某個方法在任何一次、任何一折算不出來</td>
@@ -3059,11 +3059,11 @@ QDA｜10 次平均 Macro recall
 </tr>
 <tr class="odd">
 <td>5. 回答 Claude 的問題</td>
-<td>沒說明要分類哪一欄時，Claude 會先問；接著列出打算用來判斷的欄位請你確認，並確認同一個對象會不會有好幾筆。X 有空格時會問要不要補中位數；Y 有空格則會停止並說明</td>
+<td>沒說明要分類哪一欄時，Claude 會先問；接著列出打算用來判斷的欄位請你確認，如果資料看起來像同一個對象有好幾筆（例如編號重複、有日期欄位），會先確認。X 有空格時會問要不要補中位數；Y 有空格則會停止並說明</td>
 </tr>
 <tr class="even">
 <td>6. 拿到結果</td>
-<td>中文分析報告 <code>report.html</code>、含 R 程式碼的報告原始檔 <code>report.qmd</code>，以及圖和表格</td>
+<td>中文分析報告 <code>report.html</code>、含 R 程式碼的報告原始檔 <code>report.qmd</code>，以及圖和表格。<code>report.qmd</code> 要和同資料夾的 <code>run_analysis.R</code>、<code>input_data.csv</code> 放在一起才能 Render，請下載整個輸出資料夾，不要只拿 qmd</td>
 </tr>
 </tbody>
 </table>
