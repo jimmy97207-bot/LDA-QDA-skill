@@ -30,8 +30,8 @@ Claude Skill：針對已知類別的表格資料（CSV），以 R 完成「變�
 ```
 ├── README.md
 ├── .gitignore                               # 不上傳的暫存檔（驗收輸出、Quarto 暫存等）
-├── discriminant-analysis.zip                # Skill 本體（上傳到 Claude Skill）
-├── discriminant-analysis/                   # Skill 本體（安裝時使用此資料夾）
+├── lda-qda.zip                              # Skill 本體（上傳到 Claude Skill）
+├── lda-qda/                                 # Skill 本體（安裝時使用此資料夾）
 │   ├── SKILL.md                             # Skill 主說明（Claude 讀取的入口）
 │   ├── requirements.txt                     # R 與套件版本
 │   ├── load_project.R                       # 在 R／RStudio 載入分析函式
@@ -67,7 +67,7 @@ Claude Skill：針對已知類別的表格資料（CSV），以 R 完成「變�
     └── VALIDATION.md                        # 驗收紀錄
 ```
 
-- **`discriminant-analysis.zip`**：Skill 本體，安裝到 Claude 時使用。
+- **`lda-qda.zip`**：Skill 本體，安裝到 Claude 時使用。
 - **`materials/`**：說明報告，介紹流程設計、決策邏輯與 iris 示範結果；`.qmd` 可用 Quarto 重新產生 `.html`。
 
 ## 程式說明與執行流程
@@ -104,19 +104,19 @@ assets/iris.csv (+ iris_dictionary.csv)
 
 ### 在 Claude 上使用（不用寫程式）
 
-1. 下載 `discriminant-analysis.zip`（不用解壓縮）。
+1. 下載 `lda-qda.zip`（不用解壓縮）。
 2. 在 Claude 的「Settings → Capabilities」打開「Code execution and file creation」（新版設定叫「Create and edit files」）。
 3. 到「Customize → Skills」，按「＋」→「Create skill」→「Upload a skill」，上傳 zip，並確認它是開啟的。
 4. 開新對話，上傳 CSV，輸入「幫我用這份資料做區別分析」。
 5. 回答 Claude 的確認問題（分類的欄位、判斷用的欄位、是否同一對象多筆、空格是否補值），最後拿到 `report.html` 等結果。
 
-這個 skill 用 R 分析；Claude 的執行環境沒有 R 時會先嘗試安裝，無法安裝時會說明，可改在已安裝 R 的電腦上用 Claude Code 執行（把 `discriminant-analysis/` 放進 skills 資料夾）。Team／Enterprise 帳號需要管理員開放建立 skill 的權限。參考：[Use skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)。
+這個 skill 用 R 分析；Claude 的執行環境沒有 R 時會先嘗試安裝，無法安裝時會說明，可改在已安裝 R 的電腦上用 Claude Code 執行（把 `lda-qda/` 放進 skills 資料夾）。Team／Enterprise 帳號需要管理員開放建立 skill 的權限。參考：[Use skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)。
 
 ### 直接執行
 
 ```bash
 # 只需要 R（>= 4.3）與內建的 MASS；不需要另外安裝套件
-cd discriminant-analysis
+cd lda-qda
 
 # 執行 demo（demo_iris/ 已附上跑好的結果；輸出資料夾已存在時會停止，所以用新名稱）
 Rscript scripts/lda_qda_pipeline.R assets/iris.csv --target Species --out my_iris_result

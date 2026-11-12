@@ -1,5 +1,5 @@
 ---
-name: discriminant-analysis
+name: lda-qda
 description: 用 R 做 LDA／QDA 區別分析：以多個數值變數判斷已知類別，含資料檢查、Mardia 與 Box's M 診斷、重複交叉驗證比較兩法，輸出繁體中文報告。使用者提到區別分析、判別分析、LDA、QDA、Fisher 判別時使用；不適用於主題模型的 LDA。
 ---
 

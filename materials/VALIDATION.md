@@ -37,7 +37,7 @@
 | Box's M（df = 20） | ALL | 140.943 | 3.352 × 10⁻²⁰ |
 
 - iris 交叉驗證與原型相同：LDA 正確率／Macro recall = 0.98；QDA = 0.9733333。
-- 命令列入口在 iris 上產生完整輸出（`discriminant-analysis/demo_iris/`），其 `metrics.csv` 與函式呼叫結果一致。
+- 命令列入口在 iris 上產生完整輸出（`lda-qda/demo_iris/`），其 `metrics.csv` 與函式呼叫結果一致。
 - `materials/make-skill-tutorial.qmd` 已用 Quarto 1.11.9 重新 Render 成 `make-skill-tutorial.html`。
 
 ## 3. 依審閱意見修正（2026-11-08）
