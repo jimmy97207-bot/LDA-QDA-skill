@@ -2516,12 +2516,12 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
 <tbody>
 <tr class="odd">
 <td><strong>樣本數不多</strong>，每類幾十筆，且各類大致是鐘形</td>
-<td>LDA 只需估計各類平均和一個共同的共變異數矩陣，小樣本也穩定</td>
+<td>LDA 只需估計各類平均和一個共同的共變異數矩陣，小樣本也穩定；QDA 需要較多資料，skill 會用交叉驗證比較兩者，資料不夠時通常 LDA 勝出</td>
 <td><strong>KNN、隨機森林、SVM</strong>：需要較多資料才能學出好的界線，資料少時容易過度配適</td>
 </tr>
 <tr class="even">
 <td><strong>3 類以上</strong></td>
-<td>LDA 天生處理多類，還能把資料投影到判別軸上，一張圖看出類別怎麼分開</td>
+<td>LDA 和 QDA 都直接處理多類；LDA 還能把資料投影到判別軸上，一張圖看出類別怎麼分開</td>
 <td><strong>邏輯斯迴歸</strong>：要擴充成多項模型，係數都是「相對於基準類」，解釋較繞</td>
 </tr>
 <tr class="odd">
