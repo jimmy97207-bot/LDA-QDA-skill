@@ -2218,7 +2218,7 @@ vertical-align: -.125em;
   </ul></li>
   <li><a href="#資料檢查" id="toc-資料檢查" class="nav-link" data-scroll-target="#資料檢查">資料檢查</a>
   <ul class="collapse">
-  <li><a href="#缺失值處理" id="toc-缺失值處理" class="nav-link" data-scroll-target="#缺失值處理">缺失值處理</a></li>
+  <li><a href="#遺失值處理" id="toc-遺失值處理" class="nav-link" data-scroll-target="#遺失值處理">遺失值處理</a></li>
   </ul></li>
   <li><a href="#假設診斷參考用" id="toc-假設診斷參考用" class="nav-link" data-scroll-target="#假設診斷參考用">假設診斷（參考用）</a>
   <ul class="collapse">
@@ -2288,14 +2288,14 @@ vertical-align: -.125em;
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">folds =</span> <span class="dv">5</span>, <span class="at">seed =</span> <span class="dv">2026</span>,</span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">variable_info =</span> variable_info,</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">impute =</span> <span class="st">&quot;median&quot;</span>,</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">dataset_description =</span> <span class="st">&quot;iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範缺失值關卡與各訓練折內的中位數補值&quot;</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">dataset_description =</span> <span class="st">&quot;iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範遺失值關卡與各訓練折內的中位數補值&quot;</span>)</span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>guide <span class="ot">&lt;-</span> <span class="fu">report_guides</span>(result)</span></code></pre></div><button title="複製到剪貼簿" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
 </div>
 <p>本分析以 4 個預測變數（花萼長度、花萼寬度、花瓣長度、花瓣寬度）預測 Species（鳶尾花品種）的 3 個類別（setosa、versicolor、virginica），並比較 LDA 與 QDA 的分類表現。</p>
 <section id="資料與設定" class="level2">
 <h2 class="anchored" data-anchor-id="資料與設定">資料與設定</h2>
-<p>iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範缺失值關卡與各訓練折內的中位數補值</p>
+<p>iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範遺失值關卡與各訓練折內的中位數補值</p>
 <ul>
 <li>要分類的欄位（Y）：Species</li>
 <li>用來判斷的欄位（X）：Sepal.Length、Sepal.Width、Petal.Length、Petal.Width</li>
@@ -2416,7 +2416,7 @@ vertical-align: -.125em;
 </section>
 <section id="資料檢查" class="level2">
 <h2 class="anchored" data-anchor-id="資料檢查">資料檢查</h2>
-<p>以下只做標記與說明，不刪除或轉換任何資料（缺失值處理另見下一節）。每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。</p>
+<p>以下只做標記與說明，不刪除或轉換任何資料（遺失值處理另見下一節）。每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。</p>
 <div class="cell">
 <details open class="code-fold">
 <summary>程式碼</summary>
@@ -2438,19 +2438,19 @@ vertical-align: -.125em;
 </thead>
 <tbody>
 <tr class="odd">
-<td style="text-align: left;">X 空格數</td>
+<td style="text-align: left;">X 遺失值數</td>
 <td style="text-align: left;">30</td>
-<td style="text-align: left;">X 中空白的格數（Sepal.Length=13, Sepal.Width=5, Petal.Length=5, Petal.Width=7）</td>
+<td style="text-align: left;">X 中遺失的格數（Sepal.Length=13, Sepal.Width=5, Petal.Length=5, Petal.Width=7）</td>
 </tr>
 <tr class="even">
-<td style="text-align: left;">有空格的筆數</td>
+<td style="text-align: left;">有遺失值的筆數</td>
 <td style="text-align: left;">30</td>
-<td style="text-align: left;">至少有一格 X 空白的筆數；不刪除，模型在每輪 train set 內補中位數</td>
+<td style="text-align: left;">至少有一格 X 遺失的筆數；不刪除，模型在每輪 train set 內補中位數</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">完整觀測筆數</td>
 <td style="text-align: left;">120</td>
-<td style="text-align: left;">X 沒有空格的筆數；假設診斷、描述統計與圖 1–5 只用這些資料</td>
+<td style="text-align: left;">X 沒有遺失值的筆數；假設診斷、描述統計與圖 1–5 只用這些資料</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">重複筆數</td>
@@ -2489,14 +2489,14 @@ vertical-align: -.125em;
 <details open class="code-fold">
 <summary>程式碼</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">identical</span>(result<span class="sc">$</span>settings<span class="sc">$</span>impute, <span class="st">&quot;median&quot;</span>) <span class="sc">&amp;&amp;</span> <span class="fu">nrow</span>(result<span class="sc">$</span>imputation)) {</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;### 缺失值處理</span><span class="sc">\n\n</span><span class="st">在每一份 train set 內計算中位數再補值，test set 不參與計算。&quot;</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;### 遺失值處理</span><span class="sc">\n\n</span><span class="st">在每一份 train set 內計算中位數再補值，test set 不參與計算。&quot;</span>,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">imputation_summary</span>(result), <span class="at">digits =</span> <span class="dv">4</span>))</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">完整紀錄（每一輪、每個變數）見 imputation.csv。</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
 <span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="複製到剪貼簿" class="code-copy-button"><i class="bi"></i></button></div>
 </details>
-<section id="缺失值處理" class="level3">
-<h3 class="anchored" data-anchor-id="缺失值處理">缺失值處理</h3>
+<section id="遺失值處理" class="level3">
+<h3 class="anchored" data-anchor-id="遺失值處理">遺失值處理</h3>
 <p>在每一份 train set 內計算中位數再補值，test set 不參與計算。 下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。</p>
 <table class="caption-top table">
 <colgroup>
@@ -3336,7 +3336,7 @@ loaded via a namespace (and not attached):
 <li>尚無外部資料驗證；推廣到其他資料來源或採集條件，仍需進一步確認。</li>
 <li>本報告沒有計算變數重要性或判別係數的不確定性，不宜據此判斷哪個變數最重要。</li>
 <li>資料中有 1 筆與其他列的 Y 和 X 完全相同，已保留；數值相同不必然代表同一個體或標本，是否為重複登錄仍需依原始紀錄確認。</li>
-<li>X 的空格以各訓練折的中位數補值；補值方式可能影響結果，本報告未與其他補值方式比較。</li>
+<li>X 的遺失值以各訓練折的中位數補值；補值方式可能影響結果，本報告未與其他補值方式比較。</li>
 <li>本版處理獨立觀測與數值型預測變數，使用重複分層交叉驗證（固定 5 折、10 次）。</li>
 <li>各類別診斷有多個檢定，p 值以診斷用途呈現，未進行多重比較校正。</li>
 </ul>

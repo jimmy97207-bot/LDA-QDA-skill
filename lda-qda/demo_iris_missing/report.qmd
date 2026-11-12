@@ -28,7 +28,7 @@ result <- run_pipeline(data, y = "Species",
   folds = 5, seed = 2026,
   variable_info = variable_info,
   impute = "median",
-  dataset_description = "iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範缺失值關卡與各訓練折內的中位數補值")
+  dataset_description = "iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範遺失值關卡與各訓練折內的中位數補值")
 guide <- report_guides(result)
 ```
 
@@ -72,7 +72,7 @@ knitr::kable(data_checks_display(result))
 ```{r}
 #| results: asis
 if (identical(result$settings$impute, "median") && nrow(result$imputation)) {
-  cat("### 缺失值處理\n\n在每一份 train set 內計算中位數再補值，test set 不參與計算。",
+  cat("### 遺失值處理\n\n在每一份 train set 內計算中位數再補值，test set 不參與計算。",
       "下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。\n\n")
   print(knitr::kable(imputation_summary(result), digits = 4))
   cat("\n完整紀錄（每一輪、每個變數）見 imputation.csv。\n")

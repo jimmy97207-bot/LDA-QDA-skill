@@ -861,10 +861,10 @@ data_checks_display <- function(result) {
   info <- list(
     observations = c("觀測筆數", "分析用的資料筆數"),
     complete_observations = c("完整觀測筆數",
-      "X 沒有空格的筆數；假設診斷、描述統計與圖 1–5 只用這些資料"),
-    missing_cells = c("X 空格數", "X 中空白的格數"),
-    rows_with_missing = c("有空格的筆數",
-      "至少有一格 X 空白的筆數；不刪除，模型在每輪 train set 內補中位數"),
+      "X 沒有遺失值的筆數；假設診斷、描述統計與圖 1–5 只用這些資料"),
+    missing_cells = c("X 遺失值數", "X 中遺失的格數"),
+    rows_with_missing = c("有遺失值的筆數",
+      "至少有一格 X 遺失的筆數；不刪除，模型在每輪 train set 內補中位數"),
     duplicate_rows = c("重複筆數",
       "Y 和 X 都與其他列完全相同的筆數"),
     class_balance_ratio = c("類別筆數比",
@@ -977,7 +977,7 @@ report_guides <- function(result) {
       "整體正確率會被筆數多的類別主導，所以本報告以 Macro recall 為主要指標。"),
     variable_info = paste0("下表說明每個欄位的意思與單位。「角色」欄：X（預測變數）",
       "是用來判斷的欄位，Y（分類變數）是要分的類別。"),
-    data_checks = paste0("以下只做標記與說明，不刪除或轉換任何資料（缺失值處理另見下一節）。",
+    data_checks = paste0("以下只做標記與說明，不刪除或轉換任何資料（遺失值處理另見下一節）。",
       "每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。"),
     metrics = paste0("怎麼看這張表：每一列是一個方法，分數都是 ", R, " 次重複的平均。",
       "「平均正確率」是全部資料猜對的比例；",
@@ -1400,7 +1400,7 @@ conclusion_lines <- function(result) {
     if (length(rm_dup)) paste0("依使用者確認，分析前刪除了 ", length(rm_dup),
       " 筆與其他列完全相同的重複登錄（原始資料第 ", row_list(rm_dup),
       " 筆）；分析樣本為 ", N, " 筆。"),
-    if (imputed) "X 的空格以各訓練折的中位數補值；補值方式可能影響結果，本報告未與其他補值方式比較。",
+    if (imputed) "X 的遺失值以各訓練折的中位數補值；補值方式可能影響結果，本報告未與其他補值方式比較。",
     "本版處理獨立觀測與數值型預測變數，使用重複分層交叉驗證（固定 5 折、10 次）。",
     "各類別診斷有多個檢定，p 值以診斷用途呈現，未進行多重比較校正。"))
   c("## 結論與討論", "",
@@ -1424,8 +1424,8 @@ data_handling_line <- function(result) {
     " 筆重複登錄（原始資料第 ", row_list(rm_dup), " 筆），其餘觀測值未刪除")
     else "未刪除觀測值"
   paste0("- 資料處理：", dropped,
-    if (imputed) "、未轉換變數；缺失值依使用者同意在各 train set 內補中位數。"
-    else "、未插補缺失值或轉換變數。")
+    if (imputed) "、未轉換變數；遺失值依使用者同意在各 train set 內補中位數。"
+    else "、未插補遺失值或轉換變數。")
 }
 
 make_report <- function(result) {
@@ -1462,11 +1462,11 @@ make_report <- function(result) {
   } else character()
   impute_block <- if (identical(result$settings$impute, "median") &&
                        is.data.frame(result$imputation) && nrow(result$imputation)) {
-    c("## 缺失值處理", "",
-      paste0("X 共有 ", result$settings$missing_cells, " 個空格。依使用者決定，",
+    c("## 遺失值處理", "",
+      paste0("X 共有 ", result$settings$missing_cells, " 個遺失值。依使用者決定，",
              "在每一份 train set 內計算各欄中位數，再用這個中位數補該輪的 train set 與 test set；",
              "test set 不參與計算，避免資料洩漏。最終模型以全部資料的中位數補值。"),
-      "假設診斷、描述統計與探索圖（圖 1–5）只使用沒有空格的完整觀測；混淆矩陣來自交叉驗證，包含全部觀測。",
+      "假設診斷、描述統計與探索圖（圖 1–5）只使用沒有遺失值的完整觀測；混淆矩陣來自交叉驗證，包含全部觀測。",
       paste0("下表摘要 ", nrow(result$imputation) / length(result$settings$x),
              " 輪 train set 的中位數：每個變數在各輪用到的中位數最小與最大值，",
              "以及每輪平均補了幾格；每一輪的完整紀錄見 `imputation.csv`。"), "",
@@ -1792,7 +1792,7 @@ write_report_qmd <- function(result, out, title = "LDA／QDA 分析報告") {
     "## 資料檢查", "", "`r guide$data_checks`", "",
     chunk("knitr::kable(data_checks_display(result))"),
     chunk(c("if (identical(result$settings$impute, \"median\") && nrow(result$imputation)) {",
-            "  cat(\"### 缺失值處理\\n\\n在每一份 train set 內計算中位數再補值，test set 不參與計算。\",",
+            "  cat(\"### 遺失值處理\\n\\n在每一份 train set 內計算中位數再補值，test set 不參與計算。\",",
             "      \"下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。\\n\\n\")",
             "  print(knitr::kable(imputation_summary(result), digits = 4))",
             "  cat(\"\\n完整紀錄（每一輪、每個變數）見 imputation.csv。\\n\")",

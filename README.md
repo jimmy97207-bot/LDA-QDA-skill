@@ -6,14 +6,14 @@ Claude Skill：針對已知類別的表格資料（CSV），以 R 完成「變�
 
 ## 功能特色
 
-- **半自動決策**：Y 由使用者指定；AI 自動提出 X 清單，使用者確認後才執行分析。資料乾淨時，確認完 Y、X 就一路跑完；其餘只在遇到關卡（疑似同一對象多筆、有空格、某類少於 5 筆、兩種方法都算不出來）時詢問或停止，並用白話說明原因。
+- **半自動決策**：Y 由使用者指定；AI 自動提出 X 清單，使用者確認後才執行分析。資料乾淨時，確認完 Y、X 就一路跑完；其餘只在遇到關卡（疑似同一對象多筆、有遺失值、某類少於 5 筆、兩種方法都算不出來）時詢問或停止，並用白話說明原因。
 - **先確認 Y 與 X**：`--plan` 列出 Y 候選與預設 X 清單，使用者只需確認或修改；名稱是編號、非數值、常數的欄位自動排除，數值像編號的欄位保留並請使用者確認，不自行刪除；讀取欄位說明檔產生變數介紹表。
 - **資料檢查只標記不修改**：重複列、類別比例、$n_k\le p$ 的類別、組內零變異、X 是否滿秩、組內 1.5×IQR 離群列。
 - **假設診斷**：各組 Mardia 多元偏態與峰態、Box's M 共變異數同質性；以 base R 直接計算，結果與 MVN 6.3／biotools 4.3 一致。報告附兩者的合併解讀表；Mardia 顯著時自動加註。
 - **公平比較**：LDA、QDA 使用相同的 10 組分層切分；先驗機率與模型都只用訓練折估計；逐折檢查可估計性，任何一折失敗就標為「驗證不完整」，不參加比較。
 - **用 test 表現選方法**：Mardia、Box's M 只作診斷參考；選模依分層 5-fold 重複 10 次的平均 Macro recall，較高者勝出，完全相同時選 LDA；另報告逐次勝出次數說明穩定度；選定後用全部資料建立最終模型。
 - **固定、不改研究問題**：固定分層 5-fold × 10 次，不開放調整；某類少於 5 筆就停止；不合併或刪除類別、不自行改模型。
-- **缺失值不洩漏**：X 有空格時，使用者同意補值後，只用每份 train set 計算中位數再補值（`--impute median`），50 輪的中位數都有紀錄。
+- **遺失值不洩漏**：X 有遺失值時，使用者同意補值後，只用每份 train set 計算中位數再補值（`--impute median`），50 輪的中位數都有紀錄。
 - **兩種報告**：`report.html`（R 直接寫出，一定會有）與 `report.qmd`（含 R 程式碼區塊，Render 時重新計算）。
 
 ## 評估指標
@@ -49,7 +49,7 @@ Claude Skill：針對已知類別的表格資料（CSV），以 R 完成「變�
 │   │   ├── iris_dictionary.csv              # 欄位說明
 │   │   ├── iris_missing.csv                 # 第二個 demo：挖掉 5% 的 X
 │   │   └── iris_missing_dictionary.csv
-│   ├── demo_iris_missing/                   # 有缺失值 demo 的分析輸出（含 imputation.csv）
+│   ├── demo_iris_missing/                   # 有遺失值 demo 的分析輸出（含 imputation.csv）
 │   ├── demo_iris/                           # iris demo 的分析輸出
 │   │   ├── report.html                      #   繁中報告（直接產生）
 │   │   ├── report.qmd                       #   含 R 程式碼的報告原始檔
@@ -108,7 +108,7 @@ assets/iris.csv (+ iris_dictionary.csv)
 2. 在 Claude 的「Settings → Capabilities」打開「Code execution and file creation」（新版設定叫「Create and edit files」）。
 3. 到「Customize → Skills」，按「＋」→「Create skill」→「Upload a skill」，上傳 zip，並確認它是開啟的。
 4. 開新對話，上傳 CSV，輸入「幫我用這份資料做區別分析」。
-5. 回答 Claude 的確認問題（分類的欄位、判斷用的欄位、是否同一對象多筆、空格是否補值），最後拿到 `report.html` 等結果。
+5. 回答 Claude 的確認問題（分類的欄位、判斷用的欄位、是否同一對象多筆、遺失值是否補值），最後拿到 `report.html` 等結果。
 
 這個 skill 用 R 分析；Claude 的執行環境沒有 R 時會先嘗試安裝，無法安裝時會說明，可改在已安裝 R 的電腦上用 Claude Code 執行（把 `lda-qda/` 放進 skills 資料夾）。Team／Enterprise 帳號需要管理員開放建立 skill 的權限。參考：[Use skills in Claude](https://support.claude.com/en/articles/12512180-use-skills-in-claude)。
 
@@ -138,12 +138,12 @@ Rscript tests/validate.R
 | `--drop` | 自動選 X 時額外排除的欄位 |
 | `--dict` | 欄位說明檔；未指定時自動尋找 `<檔名>_dictionary.csv` |
 | `--seed` | 亂數種子（預設 2026） |
-| `--impute` | `none`（預設，X 有空格就停止）或 `median`（每份 train set 內補中位數） |
+| `--impute` | `none`（預設，X 有遺失值就停止）或 `median`（每份 train set 內補中位數） |
 | `--out` | 輸出資料夾（預設 `lda_qda_<檔名>`）；已存在時停止，避免覆蓋 |
 
 欄位說明檔格式（CSV，UTF-8）：`欄位,說明,單位,角色`；`欄位 = __dataset__` 的那一列寫整份資料的描述。
 
-資料要求：每列一筆觀測、第一列為欄名；Y 至少兩類、不能有空格；X 為數值、沒有無限值（有空格時須加 `--impute median`）；每一類至少 5 筆。程式不會自行刪除或轉換資料，不符合時會停止並說明原因。
+資料要求：每列一筆觀測、第一列為欄名；Y 至少兩類、不能有遺失值；X 為數值、沒有無限值（有遺失值時須加 `--impute median`）；每一類至少 5 筆。程式不會自行刪除或轉換資料，不符合時會停止並說明原因。
 
 ## 示範結果
 
@@ -152,7 +152,7 @@ Rscript tests/validate.R
 | iris（150 筆、3 類、4 個 X） | Mardia 皆未拒絕；Box's M p = 3.35 × 10⁻²⁰ | 0.9793（146.9，146–147） | 0.9733（146.0，145–147） | 6／0／4 | LDA |
 | iris_missing（同上，挖掉 5% 的 X，`--impute median`） | 以 120 筆完整觀測計算 | 0.9400（141.0，139–143） | 0.9553（143.3，140–145） | 1／8／1 | QDA |
 
-第一個 demo 示範 Box's M 拒絕共變異數同質，QDA 卻沒有分得比較準（10 次中一次都沒贏）；第二個 demo 示範缺失值關卡與各折內的中位數補值，QDA 多數時候較高，但也有 1 次反過來。
+第一個 demo 示範 Box's M 拒絕共變異數同質，QDA 卻沒有分得比較準（10 次中一次都沒贏）；第二個 demo 示範遺失值關卡與各折內的中位數補值，QDA 多數時候較高，但也有 1 次反過來。
 
 ## 主要參考資料
 

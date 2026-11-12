@@ -2413,7 +2413,7 @@ vertical-align: -.125em;
 </section>
 <section id="資料檢查" class="level2">
 <h2 class="anchored" data-anchor-id="資料檢查">資料檢查</h2>
-<p>以下只做標記與說明，不刪除或轉換任何資料（缺失值處理另見下一節）。每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。</p>
+<p>以下只做標記與說明，不刪除或轉換任何資料（遺失值處理另見下一節）。每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。</p>
 <div class="cell">
 <details open class="code-fold">
 <summary>程式碼</summary>
@@ -2476,7 +2476,7 @@ vertical-align: -.125em;
 <details open class="code-fold">
 <summary>程式碼</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">identical</span>(result<span class="sc">$</span>settings<span class="sc">$</span>impute, <span class="st">&quot;median&quot;</span>) <span class="sc">&amp;&amp;</span> <span class="fu">nrow</span>(result<span class="sc">$</span>imputation)) {</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;### 缺失值處理</span><span class="sc">\n\n</span><span class="st">在每一份 train set 內計算中位數再補值，test set 不參與計算。&quot;</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;### 遺失值處理</span><span class="sc">\n\n</span><span class="st">在每一份 train set 內計算中位數再補值，test set 不參與計算。&quot;</span>,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">imputation_summary</span>(result), <span class="at">digits =</span> <span class="dv">4</span>))</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">完整紀錄（每一輪、每個變數）見 imputation.csv。</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>

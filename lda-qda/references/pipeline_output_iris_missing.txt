@@ -1,6 +1,6 @@
 == LDA/QDA pipeline ==
 Data: assets/iris_missing.csv (150 rows, 5 columns)
-Description: iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範缺失值關卡與各訓練折內的中位數補值
+Description: iris_missing：R datasets::iris 隨機挖掉 5% 的 X（30 格，每列最多 1 格，完全隨機），用來示範遺失值關卡與各訓練折內的中位數補值
 Dictionary: assets/iris_missing_dictionary.csv
 Y: Species | classes: setosa=50, versicolor=50, virginica=50
 X (4): Sepal.Length, Sepal.Width, Petal.Length, Petal.Width

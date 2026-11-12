@@ -16,7 +16,7 @@
 <li>驗證方式：重複分層 5-fold 交叉驗證 10 次（共 50 輪 train／test）；隨機種子：2026</li>
 <li>主要指標：Macro recall（各類別召回率的等權平均，即平衡正確率）。</li>
 <li>先驗機率：由各訓練折的類別比例估計。</li>
-<li>資料處理：未刪除觀測值、未插補缺失值或轉換變數。</li>
+<li>資料處理：未刪除觀測值、未插補遺失值或轉換變數。</li>
 <li>軟體：R version 4.3.3 (2024-02-29)；MASS 7.3.60.0.1；診斷：base R (Mardia 1970; Box's M chi-square approximation)</li>
 </ul>
 <h3>各類別筆數</h3>
@@ -38,7 +38,7 @@
 <tr><td>Species</td><td>鳶尾花品種（setosa、versicolor、virginica）</td><td></td><td>Y（分類變數）</td><td>character</td><td>0</td></tr>
 </tbody></table></div>
 <h2>資料檢查</h2>
-<p>以下只做標記與說明，不刪除或轉換任何資料（缺失值處理另見下一節）。每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。</p>
+<p>以下只做標記與說明，不刪除或轉換任何資料（遺失值處理另見下一節）。每一列是一項檢查：「結果」是檢查出的數字，「說明」寫這個數字代表什麼。</p>
 <div class="tbl"><table>
 <thead><tr><th>檢查項目</th><th>結果</th><th>說明</th></tr></thead><tbody>
 <tr><td>觀測筆數</td><td>150</td><td>分析用的資料筆數（3 類、4 個 X）</td></tr>

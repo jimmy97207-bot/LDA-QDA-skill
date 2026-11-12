@@ -522,7 +522,7 @@ check(any(grepl("^NOTE: 1 row\\(s\\) identical .*143=102", plan_iris)),
       any(grepl("removed_duplicates = c(143)", dd_qmd, fixed = TRUE)),
       any(grepl('"removed_duplicate_rows": [143]', dd_json, fixed = TRUE)),
       length(readLines(file.path(dedup_out, "input_data.csv"))) == 150L,
-      any(grepl("- \u8cc7\u6599\u8655\u7406\uff1a\u672a\u522a\u9664\u89c0\u6e2c\u503c\u3001\u672a\u63d2\u88dc\u7f3a\u5931\u503c\u6216\u8f49\u63db\u8b8a\u6578\u3002", md, fixed = TRUE)))
+      any(grepl("- \u8cc7\u6599\u8655\u7406\uff1a\u672a\u522a\u9664\u89c0\u6e2c\u503c\u3001\u672a\u63d2\u88dc\u907a\u5931\u503c\u6216\u8f49\u63db\u8b8a\u6578\u3002", md, fixed = TRUE)))
 # report.qmd passes folds = 5 (a double); fold ids must still work when a class
 # size is not a multiple of 5.
 check(identical(run_pipeline(iris[-143, ], "Species", x, folds = 5)$metrics,
