@@ -2214,12 +2214,13 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
     <h2 id="toc-title">報告內容</h2>
    
   <ul class="collapse">
-  <li><a href="#problem" id="toc-problem" class="nav-link active" data-scroll-target="#problem">01｜要解決什麼問題</a></li>
+  <li><a href="#data-first" id="toc-data-first" class="nav-link active" data-scroll-target="#data-first">拿到這樣的資料，就可以用這個 skill</a></li>
+  <li><a href="#problem" id="toc-problem" class="nav-link" data-scroll-target="#problem">01｜要解決什麼問題</a></li>
   <li><a href="#idea" id="toc-idea" class="nav-link" data-scroll-target="#idea">02｜核心想法</a></li>
   <li><a href="#assumptions" id="toc-assumptions" class="nav-link" data-scroll-target="#assumptions">03｜兩個基本假設</a></li>
   <li><a href="#lda-qda" id="toc-lda-qda" class="nav-link" data-scroll-target="#lda-qda">04｜LDA 與 QDA</a></li>
   <li><a href="#tradeoff" id="toc-tradeoff" class="nav-link" data-scroll-target="#tradeoff">05｜LDA 與 QDA 的取捨</a></li>
-  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">06｜分析目標與適用範圍</a></li>
+  <li><a href="#overview" id="toc-overview" class="nav-link" data-scroll-target="#overview">06｜什麼情境選這個 skill</a></li>
   <li><a href="#flow" id="toc-flow" class="nav-link" data-scroll-target="#flow">07｜完整分析流程</a></li>
   <li><a href="#diagnostics" id="toc-diagnostics" class="nav-link" data-scroll-target="#diagnostics">08｜資料探索與假設診斷</a></li>
   <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">09｜公平比較：相同切分的交叉驗證</a></li>
@@ -2267,9 +2268,69 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
 <div class="report-lead">
 <p>從資料檢查、假設診斷到模型比較，建立一套能說明「為什麼這樣分析」的區別分析 Skill。本報告介紹設計邏輯、決策關卡與實際驗證成果。</p>
 </div>
+<section id="data-first" class="level2">
+<h2 class="anchored" data-anchor-id="data-first">拿到這樣的資料，就可以用這個 skill</h2>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Sepal.Length</th>
+<th>Sepal.Width</th>
+<th>Petal.Length</th>
+<th>Petal.Width</th>
+<th>Species</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>5.1</td>
+<td>3.5</td>
+<td>1.4</td>
+<td>0.2</td>
+<td>setosa</td>
+</tr>
+<tr class="even">
+<td>7.0</td>
+<td>3.2</td>
+<td>4.7</td>
+<td>1.4</td>
+<td>versicolor</td>
+</tr>
+<tr class="odd">
+<td>6.3</td>
+<td>3.3</td>
+<td>6.0</td>
+<td>2.5</td>
+<td>virginica</td>
+</tr>
+<tr class="even">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<p>這份資料（iris 的第 1、51、101 筆）有三個特徵：</p>
+<ul>
+<li><strong>最後一欄是已知的類別</strong>（Y）：每朵花是哪個品種已經知道；</li>
+<li><strong>前面幾欄都是連續的測量值</strong>（X）：長度、寬度；</li>
+<li><strong>每一列是不同的對象</strong>：一列就是一朵花。</li>
+</ul>
+<p>看到這樣的資料，通常想問：</p>
+<ol type="1">
+<li>用這些測量值，<strong>能不能分辨</strong>出是哪一類？準確度多少？</li>
+<li>類別是<strong>怎麼被分開的</strong>？哪些類別容易混淆？</li>
+<li>結果<strong>可以相信到什麼程度</strong>？</li>
+</ol>
+<p>這個 skill 就是為了回答這三個問題而設計：用 LDA 與 QDA 建立分類規則，檢查兩者的假設，用重複交叉驗證公平比較，最後交付一份看得懂、說清楚限制的中文報告。</p>
+<div class="report-note">
+<strong>它不是「挑出最準模型」的工具箱，而是把 LDA／QDA 做深、做對、講清楚的分析助理。</strong>
+</div>
 <p class="part-label">
 第一部分｜認識 LDA／QDA
 </p>
+</section>
 <section id="problem" class="level2">
 <h2 class="anchored" data-anchor-id="problem">01｜要解決什麼問題</h2>
 <p>很多時候我們想用幾個測量值，判斷一個樣本屬於哪一類：</p>
@@ -2441,9 +2502,102 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
 </p>
 </section>
 <section id="overview" class="level2">
-<h2 class="anchored" data-anchor-id="overview">06｜分析目標與適用範圍</h2>
+<h2 class="anchored" data-anchor-id="overview">06｜什麼情境選這個 skill</h2>
 <p><code>discriminant-analysis</code> 協助使用者以已知類別 Y 與數值型 X 建立分類模型。使用者確認研究問題與欄位；AI 依規則安排流程，R 程式負責計算，最後交付中文解讀與可重現結果。</p>
-<p>第一版處理<strong>獨立觀測、至少兩個類別，以及數值型預測變數</strong>。群組、重複測量及時間資料的專用切分（分組驗證、時間切分）尚未實作，遇到這類結構時<strong>暫停</strong>，先確認研究單位，不直接套用隨機分層驗證。</p>
+<section id="情境與理由" class="level3">
+<h3 class="anchored" data-anchor-id="情境與理由">情境與理由</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>情境</th>
+<th>為什麼選 LDA／QDA（本 skill）</th>
+<th>換成其他方法會遇到的問題</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>類別分得很開</strong>，例如 setosa 和另外兩種花完全不重疊</td>
+<td>LDA 不受影響，照樣穩定估計</td>
+<td><strong>邏輯斯迴歸</strong>：類別完全分開時，係數會發散、估計不穩定</td>
+</tr>
+<tr class="even">
+<td><strong>樣本數不多</strong>，每類幾十筆，且各類大致是鐘形</td>
+<td>LDA 只需估計各類平均和一個共同的共變異數矩陣，小樣本也穩定</td>
+<td><strong>KNN、隨機森林、SVM</strong>：需要較多資料才能學出好的界線；資料少時容易過度配適，參數也難調</td>
+</tr>
+<tr class="odd">
+<td><strong>3 類以上</strong></td>
+<td>LDA 天生處理多類，還能把資料投影到判別軸上（K 類最多 K−1 條，3 類時是 2 條），一張圖看出類別怎麼分開</td>
+<td><strong>邏輯斯迴歸</strong>：要擴充成多項模型，係數都是「相對於基準類」，解釋較繞；<strong>SVM</strong>：要拆成多個二元分類器</td>
+</tr>
+<tr class="even">
+<td><strong>需要解釋「怎麼分的」</strong>，例如課堂報告、向非統計背景的人說明</td>
+<td>有判別軸和判別分數圖，看得到哪些類別重疊；每一類也有明確的機率</td>
+<td><strong>KNN、隨機森林、SVM</strong>：較像黑盒子，只給答案，很難說明分界的樣子；<strong>SVM</strong> 也沒有自然的機率輸出</td>
+</tr>
+<tr class="odd">
+<td><strong>想知道各類散布方式是否相同</strong></td>
+<td>LDA（共變異數相同）和 QDA（可以不同）正好是一組對照，比較結果就能回答</td>
+<td>其他方法沒有對應的假設可以檢查</td>
+</tr>
+<tr class="even">
+<td><strong>需要檢查假設、說清楚結論能說到多滿</strong></td>
+<td>有明確的模型假設，可以用 Mardia、Box’s M 檢查，並說明對結果的影響</td>
+<td>機器學習方法多半沒有可檢查的分布假設，只能看預測分數</td>
+</tr>
+<tr class="odd">
+<td><strong>不想調一堆參數</strong></td>
+<td>LDA／QDA 沒有需要調整的參數，結果容易重現</td>
+<td><strong>KNN</strong> 要選 k，<strong>SVM</strong> 要選 C 和 γ，<strong>隨機森林</strong>要選樹的數量和深度，調參本身又要切資料驗證</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="這些情境下其他方法反而比較好" class="level3">
+<h3 class="anchored" data-anchor-id="這些情境下其他方法反而比較好">這些情境下，其他方法反而比較好</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>情境</th>
+<th>建議改用</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>資料量很大、類別界線很不規則，例如一類被另一類包住</td>
+<td>KNN、隨機森林、SVM（RBF 核）</td>
+</tr>
+<tr class="even">
+<td>X 主要是類別型，例如性別、地區、是否吸菸</td>
+<td>邏輯斯迴歸、單純貝氏、決策樹</td>
+</tr>
+<tr class="odd">
+<td>變數個數接近或多於樣本數，例如基因資料</td>
+<td>收縮 LDA、線性 SVM、懲罰化邏輯斯迴歸</td>
+</tr>
+<tr class="even">
+<td>嚴重偏態或有很多極端值</td>
+<td>先轉換變數，或改用對分布不敏感的方法，例如決策樹</td>
+</tr>
+<tr class="odd">
+<td>只在乎預測最準，不需要解釋</td>
+<td>多種機器學習方法一起比較</td>
+</tr>
+</tbody>
+</table>
+<p>表中的其他方法是一般建議，本 skill 不會執行。另外，第一版只處理<strong>獨立觀測</strong>：群組、重複測量及時間資料的專用切分（分組驗證、時間切分）尚未實作，遇到這類結構時<strong>暫停</strong>，先確認研究單位，不直接套用隨機分層驗證。</p>
+<blockquote class="blockquote">
+<p><strong>資料不多、測量值連續、類別有已知標籤，而且需要解釋和誠實說明限制</strong>時，LDA／QDA 是最合適的起點；本 skill 把這套分析做完整，包括比較、檢查假設，並寫成看得懂的報告。</p>
+</blockquote>
 <div class="report-note">
 <strong>設計原則：固定且可解釋的流程，只在必要時詢問，不改變研究問題。</strong><br> Y 一定由使用者指定；AI 自動提出 X 清單，使用者確認後才執行分析。AI 不合併或刪除類別、不自行刪除資料列、不自行改模型——這些都會改變原本的研究問題；做不到就停止並說明原因。X 的缺失值只在使用者同意後，以各訓練折的中位數補值；Y 有缺失就停止。離群只標記；完全相同的列預設保留，只有使用者確認是重複登錄才刪除。
 </div>
@@ -2467,6 +2621,7 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
 </p>
 </div>
 </div>
+</section>
 </section>
 <section id="flow" class="level2">
 <h2 class="anchored" data-anchor-id="flow">07｜完整分析流程</h2>
