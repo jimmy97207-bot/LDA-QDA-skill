@@ -824,8 +824,8 @@ imputation_summary <- function(result) {
   out <- do.call(rbind, lapply(split(im, factor(im$variable, unique(im$variable))),
     function(z) data.frame(變數 = z$variable[1],
       中位數最小 = min(z$training_median), 中位數最大 = max(z$training_median),
-      每輪補入練習格數 = round(mean(z$filled_in_training), 1),
-      每輪補入考試格數 = round(mean(z$filled_in_validation), 1),
+      `每輪補入 train 格數` = round(mean(z$filled_in_training), 1),
+      `每輪補入 test 格數` = round(mean(z$filled_in_validation), 1),
       check.names = FALSE, row.names = NULL)))
   rownames(out) <- NULL
   out
@@ -864,7 +864,7 @@ data_checks_display <- function(result) {
       "X 沒有空格的筆數；假設診斷、描述統計與圖 1–5 只用這些資料"),
     missing_cells = c("X 空格數", "X 中空白的格數"),
     rows_with_missing = c("有空格的筆數",
-      "至少有一格 X 空白的筆數；不刪除，模型在每輪練習資料內補中位數"),
+      "至少有一格 X 空白的筆數；不刪除，模型在每輪 train set 內補中位數"),
     duplicate_rows = c("重複筆數",
       "Y 和 X 都與其他列完全相同的筆數"),
     class_balance_ratio = c("類別筆數比",
@@ -1424,7 +1424,7 @@ data_handling_line <- function(result) {
     " 筆重複登錄（原始資料第 ", row_list(rm_dup), " 筆），其餘觀測值未刪除")
     else "未刪除觀測值"
   paste0("- 資料處理：", dropped,
-    if (imputed) "、未轉換變數；缺失值依使用者同意在各練習資料內補中位數。"
+    if (imputed) "、未轉換變數；缺失值依使用者同意在各 train set 內補中位數。"
     else "、未插補缺失值或轉換變數。")
 }
 
@@ -1464,11 +1464,11 @@ make_report <- function(result) {
                        is.data.frame(result$imputation) && nrow(result$imputation)) {
     c("## 缺失值處理", "",
       paste0("X 共有 ", result$settings$missing_cells, " 個空格。依使用者決定，",
-             "在每一份練習資料內計算各欄中位數，再用這個中位數補該輪的練習與考試資料；",
-             "考試資料不參與計算，避免資料洩漏。最終模型以全部資料的中位數補值。"),
+             "在每一份 train set 內計算各欄中位數，再用這個中位數補該輪的 train set 與 test set；",
+             "test set 不參與計算，避免資料洩漏。最終模型以全部資料的中位數補值。"),
       "假設診斷、描述統計與探索圖（圖 1–5）只使用沒有空格的完整觀測；混淆矩陣來自交叉驗證，包含全部觀測。",
       paste0("下表摘要 ", nrow(result$imputation) / length(result$settings$x),
-             " 輪練習資料的中位數：每個變數在各輪用到的中位數最小與最大值，",
+             " 輪 train set 的中位數：每個變數在各輪用到的中位數最小與最大值，",
              "以及每輪平均補了幾格；每一輪的完整紀錄見 `imputation.csv`。"), "",
       markdown_table(imputation_summary(result)), "")
   } else character()
@@ -1507,7 +1507,7 @@ make_report <- function(result) {
     paste0("- 驗證方式：重複分層 ", result$settings$folds, "-fold 交叉驗證 ",
            result$settings$repeats, " 次（共 ",
            result$settings$folds * result$settings$repeats,
-           " 輪練習／考試）；隨機種子：", result$settings$seed),
+           " 輪 train／test）；隨機種子：", result$settings$seed),
     "- 主要指標：Macro recall（各類別召回率的等權平均，即平衡正確率）。",
     "- 先驗機率：由各訓練折的類別比例估計。",
     data_handling_line(result),
@@ -1781,7 +1781,7 @@ write_report_qmd <- function(result, out, title = "LDA／QDA 分析報告") {
     "- 要分類的欄位（Y）：`r result$settings$y`",
     "- 用來判斷的欄位（X）：`r paste(result$settings$x, collapse = '、')`",
     "- 樣本數：`r sum(result$class_counts$n)`",
-    "- 驗證方式：把資料分成 `r result$settings$folds` 份，每次 `r result$settings$folds - 1` 份練習、1 份考試，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 `r result$settings$repeats` 次；隨機種子 `r result$settings$seed`",
+    "- 驗證方式：把資料分成 `r result$settings$folds` 份，每次 `r result$settings$folds - 1` 份 train、1 份 test，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 `r result$settings$repeats` 次；隨機種子 `r result$settings$seed`",
     "",
     "### 各類別筆數", "", "`r guide$class_counts`", "",
     chunk("knitr::kable(class_counts_display(result))"),
@@ -1792,7 +1792,7 @@ write_report_qmd <- function(result, out, title = "LDA／QDA 分析報告") {
     "## 資料檢查", "", "`r guide$data_checks`", "",
     chunk("knitr::kable(data_checks_display(result))"),
     chunk(c("if (identical(result$settings$impute, \"median\") && nrow(result$imputation)) {",
-            "  cat(\"### 缺失值處理\\n\\n在每一份練習資料內計算中位數再補值，考試資料不參與計算。\",",
+            "  cat(\"### 缺失值處理\\n\\n在每一份 train set 內計算中位數再補值，test set 不參與計算。\",",
             "      \"下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。\\n\\n\")",
             "  print(knitr::kable(imputation_summary(result), digits = 4))",
             "  cat(\"\\n完整紀錄（每一輪、每個變數）見 imputation.csv。\\n\")",

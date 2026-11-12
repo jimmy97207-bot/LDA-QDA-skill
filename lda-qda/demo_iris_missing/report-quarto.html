@@ -2300,7 +2300,7 @@ vertical-align: -.125em;
 <li>要分類的欄位（Y）：Species</li>
 <li>用來判斷的欄位（X）：Sepal.Length、Sepal.Width、Petal.Length、Petal.Width</li>
 <li>樣本數：150</li>
-<li>驗證方式：把資料分成 5 份，每次 4 份練習、1 份考試，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 10 次；隨機種子 2026</li>
+<li>驗證方式：把資料分成 5 份，每次 4 份 train、1 份 test，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 10 次；隨機種子 2026</li>
 </ul>
 <section id="各類別筆數" class="level3">
 <h3 class="anchored" data-anchor-id="各類別筆數">各類別筆數</h3>
@@ -2445,7 +2445,7 @@ vertical-align: -.125em;
 <tr class="even">
 <td style="text-align: left;">有空格的筆數</td>
 <td style="text-align: left;">30</td>
-<td style="text-align: left;">至少有一格 X 空白的筆數；不刪除，模型在每輪練習資料內補中位數</td>
+<td style="text-align: left;">至少有一格 X 空白的筆數；不刪除，模型在每輪 train set 內補中位數</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">完整觀測筆數</td>
@@ -2489,7 +2489,7 @@ vertical-align: -.125em;
 <details open class="code-fold">
 <summary>程式碼</summary>
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">identical</span>(result<span class="sc">$</span>settings<span class="sc">$</span>impute, <span class="st">&quot;median&quot;</span>) <span class="sc">&amp;&amp;</span> <span class="fu">nrow</span>(result<span class="sc">$</span>imputation)) {</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;### 缺失值處理</span><span class="sc">\n\n</span><span class="st">在每一份練習資料內計算中位數再補值，考試資料不參與計算。&quot;</span>,</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;### 缺失值處理</span><span class="sc">\n\n</span><span class="st">在每一份 train set 內計算中位數再補值，test set 不參與計算。&quot;</span>,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。</span><span class="sc">\n\n</span><span class="st">&quot;</span>)</span>
 <span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(knitr<span class="sc">::</span><span class="fu">kable</span>(<span class="fu">imputation_summary</span>(result), <span class="at">digits =</span> <span class="dv">4</span>))</span>
 <span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cat</span>(<span class="st">&quot;</span><span class="sc">\n</span><span class="st">完整紀錄（每一輪、每個變數）見 imputation.csv。</span><span class="sc">\n</span><span class="st">&quot;</span>)</span>
@@ -2497,22 +2497,22 @@ vertical-align: -.125em;
 </details>
 <section id="缺失值處理" class="level3">
 <h3 class="anchored" data-anchor-id="缺失值處理">缺失值處理</h3>
-<p>在每一份練習資料內計算中位數再補值，考試資料不參與計算。 下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。</p>
+<p>在每一份 train set 內計算中位數再補值，test set 不參與計算。 下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 18%">
-<col style="width: 15%">
-<col style="width: 15%">
-<col style="width: 24%">
-<col style="width: 24%">
+<col style="width: 17%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 27%">
+<col style="width: 25%">
 </colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: left;">變數</th>
 <th style="text-align: right;">中位數最小</th>
 <th style="text-align: right;">中位數最大</th>
-<th style="text-align: right;">每輪補入練習格數</th>
-<th style="text-align: right;">每輪補入考試格數</th>
+<th style="text-align: right;">每輪補入 train 格數</th>
+<th style="text-align: right;">每輪補入 test 格數</th>
 </tr>
 </thead>
 <tbody>

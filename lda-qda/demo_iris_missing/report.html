@@ -13,10 +13,10 @@
 <li>分類變數：Species</li>
 <li>預測變數：Sepal.Length、Sepal.Width、Petal.Length、Petal.Width</li>
 <li>樣本數：150</li>
-<li>驗證方式：重複分層 5-fold 交叉驗證 10 次（共 50 輪練習／考試）；隨機種子：2026</li>
+<li>驗證方式：重複分層 5-fold 交叉驗證 10 次（共 50 輪 train／test）；隨機種子：2026</li>
 <li>主要指標：Macro recall（各類別召回率的等權平均，即平衡正確率）。</li>
 <li>先驗機率：由各訓練折的類別比例估計。</li>
-<li>資料處理：未刪除觀測值、未轉換變數；缺失值依使用者同意在各練習資料內補中位數。</li>
+<li>資料處理：未刪除觀測值、未轉換變數；缺失值依使用者同意在各 train set 內補中位數。</li>
 <li>軟體：R version 4.3.3 (2024-02-29)；MASS 7.3.60.0.1；診斷：base R (Mardia 1970; Box's M chi-square approximation)</li>
 </ul>
 <h3>各類別筆數</h3>
@@ -42,7 +42,7 @@
 <div class="tbl"><table>
 <thead><tr><th>檢查項目</th><th>結果</th><th>說明</th></tr></thead><tbody>
 <tr><td>X 空格數</td><td>30</td><td>X 中空白的格數（Sepal.Length=13, Sepal.Width=5, Petal.Length=5, Petal.Width=7）</td></tr>
-<tr><td>有空格的筆數</td><td>30</td><td>至少有一格 X 空白的筆數；不刪除，模型在每輪練習資料內補中位數</td></tr>
+<tr><td>有空格的筆數</td><td>30</td><td>至少有一格 X 空白的筆數；不刪除，模型在每輪 train set 內補中位數</td></tr>
 <tr><td>完整觀測筆數</td><td>120</td><td>X 沒有空格的筆數；假設診斷、描述統計與圖 1–5 只用這些資料</td></tr>
 <tr><td>重複筆數</td><td>1</td><td>Y 和 X 都與其他列完全相同的筆數（數值相同不必然代表同一個體或標本；本次保留，是否為重複登錄仍需依原始紀錄確認）</td></tr>
 <tr><td>類別筆數比</td><td>1.051</td><td>最多類 ÷ 最少類；1 代表各類一樣多，大於 1.5 時不要只看正確率</td></tr>
@@ -52,9 +52,9 @@
 <tr><td>疑似離群筆數</td><td>13</td><td>在各類別內，任一變數超出 1.5 倍四分位距（IQR）的筆數；只標記，全部保留</td></tr>
 </tbody></table></div>
 <h2>缺失值處理</h2>
-<p>X 共有 30 個空格。依使用者決定，在每一份練習資料內計算各欄中位數，再用這個中位數補該輪的練習與考試資料；考試資料不參與計算，避免資料洩漏。最終模型以全部資料的中位數補值。<br>假設診斷、描述統計與探索圖（圖 1–5）只使用沒有空格的完整觀測；混淆矩陣來自交叉驗證，包含全部觀測。<br>下表摘要 50 輪練習資料的中位數：每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格；每一輪的完整紀錄見 <code>imputation.csv</code>。</p>
+<p>X 共有 30 個空格。依使用者決定，在每一份 train set 內計算各欄中位數，再用這個中位數補該輪的 train set 與 test set；test set 不參與計算，避免資料洩漏。最終模型以全部資料的中位數補值。<br>假設診斷、描述統計與探索圖（圖 1–5）只使用沒有空格的完整觀測；混淆矩陣來自交叉驗證，包含全部觀測。<br>下表摘要 50 輪 train set 的中位數：每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格；每一輪的完整紀錄見 <code>imputation.csv</code>。</p>
 <div class="tbl"><table>
-<thead><tr><th>變數</th><th>中位數最小</th><th>中位數最大</th><th>每輪補入練習格數</th><th>每輪補入考試格數</th></tr></thead><tbody>
+<thead><tr><th>變數</th><th>中位數最小</th><th>中位數最大</th><th>每輪補入 train 格數</th><th>每輪補入 test 格數</th></tr></thead><tbody>
 <tr><td>Sepal.Length</td><td>5.8</td><td>5.95</td><td>10.4</td><td>2.6</td></tr>
 <tr><td>Sepal.Width</td><td>3</td><td>3</td><td>4</td><td>1</td></tr>
 <tr><td>Petal.Length</td><td>4.2</td><td>4.5</td><td>4</td><td>1</td></tr>

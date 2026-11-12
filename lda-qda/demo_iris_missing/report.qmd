@@ -41,7 +41,7 @@ guide <- report_guides(result)
 - 要分類的欄位（Y）：`r result$settings$y`
 - 用來判斷的欄位（X）：`r paste(result$settings$x, collapse = '、')`
 - 樣本數：`r sum(result$class_counts$n)`
-- 驗證方式：把資料分成 `r result$settings$folds` 份，每次 `r result$settings$folds - 1` 份練習、1 份考試，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 `r result$settings$repeats` 次；隨機種子 `r result$settings$seed`
+- 驗證方式：把資料分成 `r result$settings$folds` 份，每次 `r result$settings$folds - 1` 份 train、1 份 test，輪流進行（分層交叉驗證）；整個過程重新隨機分組做 `r result$settings$repeats` 次；隨機種子 `r result$settings$seed`
 
 ### 各類別筆數
 
@@ -72,7 +72,7 @@ knitr::kable(data_checks_display(result))
 ```{r}
 #| results: asis
 if (identical(result$settings$impute, "median") && nrow(result$imputation)) {
-  cat("### 缺失值處理\n\n在每一份練習資料內計算中位數再補值，考試資料不參與計算。",
+  cat("### 缺失值處理\n\n在每一份 train set 內計算中位數再補值，test set 不參與計算。",
       "下表是每個變數在各輪用到的中位數最小與最大值，以及每輪平均補了幾格。\n\n")
   print(knitr::kable(imputation_summary(result), digits = 4))
   cat("\n完整紀錄（每一輪、每個變數）見 imputation.csv。\n")

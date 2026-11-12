@@ -2224,7 +2224,7 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
   <li><a href="#flow" id="toc-flow" class="nav-link" data-scroll-target="#flow">07｜完整分析流程</a></li>
   <li><a href="#diagnostics" id="toc-diagnostics" class="nav-link" data-scroll-target="#diagnostics">08｜資料探索與假設診斷</a></li>
   <li><a href="#validation" id="toc-validation" class="nav-link" data-scroll-target="#validation">09｜公平比較：相同切分的交叉驗證</a></li>
-  <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model">10｜怎麼選 LDA 或 QDA：看考試成績</a></li>
+  <li><a href="#model" id="toc-model" class="nav-link" data-scroll-target="#model">10｜怎麼選 LDA 或 QDA：看 test 表現</a></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">11｜iris 實作驗證與成果</a></li>
   <li><a href="#limits" id="toc-limits" class="nav-link" data-scroll-target="#limits">12｜限制與貢獻</a></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">13｜參考資料</a></li>
@@ -2489,7 +2489,7 @@ summary { cursor:pointer; font-weight:650; color:#087e8b; }
 </table>
 <p>QDA 需要為每一類各自估計共變異數，要估計的參數比 LDA 多很多，因此對樣本數的要求也比較高。</p>
 <div class="report-note">
-<strong>從方法到 skill</strong><br> 一種常見做法是先看 Box’s M 檢定再決定。但 Box’s M 對偏離常態很敏感，而且 QDA 多估的那些數值，不一定換得到更好的分類。所以接下來介紹的 skill，會讓兩種方法用同一套資料「考試」，看誰實際分得比較準。
+<strong>從方法到 skill</strong><br> 一種常見做法是先看 Box’s M 檢定再決定。但 Box’s M 對偏離常態很敏感，而且 QDA 多估的那些數值，不一定換得到更好的分類。所以接下來介紹的 skill，會讓兩種方法用同一套 test set 檢驗，看誰實際分得比較準。
 </div>
 <p class="part-label">
 第二部分｜LDA／QDA Skill
@@ -2638,14 +2638,14 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 <tr class="odd">
 <td>C</td>
 <td>疑似同一對象有多筆（偵測到重複的編號、日期欄位、完全相同的列超過 5%，或你描述為多次紀錄）</td>
-<td>同一個人可能同時出現在練習題和考試題，分數會灌水；本版沒有分組驗證</td>
+<td>同一個人可能同時出現在 train set 和 test set，分數會灌水；本版沒有分組驗證</td>
 <td><strong>暫停</strong>：先確認研究單位，確認每一列是獨立個體後才繼續。若是因完全相同的列偏多而暫停：選「不同對象，保留」或「重複登錄，刪除」</td>
 </tr>
 <tr class="even">
 <td>D</td>
 <td>資料有空格</td>
 <td>模型沒辦法處理空白</td>
-<td><strong>X 有空格</strong>：先報告空格數量與位置，再問：⭐ 補中位數（只用每份練習資料計算）／停止分析。<strong>Y 有空格</strong>：停止並列出是哪幾列，不補、不猜，由你確認後再執行</td>
+<td><strong>X 有空格</strong>：先報告空格數量與位置，再問：⭐ 補中位數（只用每份 train set 計算）／停止分析。<strong>Y 有空格</strong>：停止並列出是哪幾列，不補、不猜，由你確認後再執行</td>
 </tr>
 <tr class="odd">
 <td>E</td>
@@ -2799,7 +2799,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </table>
 <p>任何一類的 Mardia 顯著時，報告會自動加註：即使資料不符合多元常態，仍可用交叉驗證評估 LDA／QDA 的表現，但模型的前提可能不成立，表現可能因此受影響；可另外比較不需要常態假設的方法（例如羅吉斯迴歸、決策樹）。iris 落在第二格。</p>
 <div class="report-note warning">
-<strong>資料處理與分類比較分開記錄。</strong><br> 缺失值、重複資料及離群標記先說明；沒有取得處理決定前，不自行刪除、插補或轉換；使用者同意補 X 的空格時，只在每份練習資料內計算中位數；Y 的空格不補。超出目前支援範圍時，不以其他切分方式悄悄替代。
+<strong>資料處理與分類比較分開記錄。</strong><br> 缺失值、重複資料及離群標記先說明；沒有取得處理決定前，不自行刪除、插補或轉換；使用者同意補 X 的空格時，只在每份 train set 內計算中位數；Y 的空格不補。超出目前支援範圍時，不以其他切分方式悄悄替代。
 </div>
 </section>
 </section>
@@ -2818,8 +2818,8 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 <p class="diagram-caption">
 圖 2　一次分層 5-fold 的設計示意。每列是一輪配適，深色區塊為該輪驗證資料；整個過程重新分組做 10 次。
 </p>
-<p>上圖是一次完整的 5-fold。整個過程再<strong>重新隨機分組，重複 10 次</strong>（共 50 輪練習／考試）：只考一次，結果可能剛好受某一種分法影響；考 10 次取平均比較穩。兩種方法每一次都用同一組分法。</p>
-<p>折數（5）與次數（10）都固定、不開放調整：每一類至少要有 5 筆，才能讓每一份考試都有這一類；不足時停止，不減少折數。</p>
+<p>上圖是一次完整的 5-fold。整個過程再<strong>重新隨機分組，重複 10 次</strong>（共 50 輪 train／test）：只切一次，結果可能剛好受某一種分法影響；重複 10 次取平均比較穩。兩種方法每一次都用同一組分法。</p>
+<p>折數（5）與次數（10）都固定、不開放調整：每一類至少要有 5 筆，才能讓每一份 test set 都有這一類；不足時停止，不減少折數。</p>
 <p>主要指標為 <strong>Macro recall</strong>：先算每一類各自被答對的比例，再取平均。</p>
 <p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">Macro recall</mtext><mo>=</mo><mfrac><mn>1</mn><mi>K</mi></mfrac><munderover><mo>∑</mo><mrow><mi>k</mi><mo>=</mo><mn>1</mn></mrow><mi>K</mi></munderover><mfrac><mrow><mi>T</mi><msub><mi>P</mi><mi>k</mi></msub></mrow><mrow><mi>T</mi><msub><mi>P</mi><mi>k</mi></msub><mo>+</mo><mi>F</mi><msub><mi>N</mi><mi>k</mi></msub></mrow></mfrac></mrow><annotation encoding="application/x-tex">
 \text{Macro recall}=\frac{1}{K}\sum_{k=1}^{K}\frac{TP_k}{TP_k+FN_k}
@@ -2844,7 +2844,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 <p>整體正確率會被大類別撐高，Macro recall 則讓每一類一樣重要。另呈現整體正確率與混淆矩陣。補值等前處理必須在各折訓練資料內估計，不能在交叉驗證前用全部資料先補好。</p>
 </section>
 <section id="model" class="level2">
-<h2 class="anchored" data-anchor-id="model">10｜怎麼選 LDA 或 QDA：看考試成績</h2>
+<h2 class="anchored" data-anchor-id="model">10｜怎麼選 LDA 或 QDA：看 test 表現</h2>
 <p>兩種方法都算得出來時，依上一節的交叉驗證結果，用下面的規則選方法：</p>
 <table class="caption-top table">
 <colgroup>
@@ -2863,7 +2863,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 <td>比較每一類各自答對比例的平均（Macro recall），避免大類別把分數撐高</td>
 </tr>
 <tr class="even">
-<td>考 10 次取平均</td>
+<td>重複 10 次取平均</td>
 <td>兩種方法用<strong>相同的分層 5-fold、重複 10 次</strong>（每次重新隨機分組），比較 10 次的平均 Macro recall，較高者勝出；完全相同時選較簡單的 LDA</td>
 </tr>
 <tr class="odd">
@@ -2985,7 +2985,7 @@ LDA／QDA skill 分析流程：主流程、詢問關卡、停止出口與自動�
 </table>
 </div>
 </div>
-<p>本例各組 Mardia p 值介於 <strong>0.157～0.879</strong>，在 0.05 水準未拒絕常態假設，但不能說已證明常態。Box’s M 的 p 值為 <strong>3.352e-20</strong>，提示共變異數同質性有疑慮。合併解讀落在「Mardia 不顯著、Box’s M 顯著」：QDA 有機會較好，但仍要看考試成績。</p>
+<p>本例各組 Mardia p 值介於 <strong>0.157～0.879</strong>，在 0.05 水準未拒絕常態假設，但不能說已證明常態。Box’s M 的 p 值為 <strong>3.352e-20</strong>，提示共變異數同質性有疑慮。合併解讀落在「Mardia 不顯著、Box’s M 顯著」：QDA 有機會較好，但仍要看 test 表現。</p>
 </section>
 <section id="performance" class="level3">
 <h3 class="anchored" data-anchor-id="performance">模型表現</h3>
@@ -3113,7 +3113,7 @@ QDA｜10 次平均 Macro recall
 </table>
 </div>
 </div>
-<p>使用者在關卡 D 選擇補值後，程式在每一份練習資料內計算各欄中位數，再補該輪的練習與考試資料；50 輪各自用的中位數都記錄在 <code>imputation.csv</code>。這個示範中 QDA 平均較高，10 次中贏了 8 次，依規則選 QDA；但 LDA 也贏了 1 次，報告會照實寫出。兩個示範合起來看：Box’s M 都沒有決定方法，選擇完全由相同切分的考試成績決定。</p>
+<p>使用者在關卡 D 選擇補值後，程式在每一份 train set 內計算各欄中位數，再補該輪的 train set 與 test set；50 輪各自用的中位數都記錄在 <code>imputation.csv</code>。這個示範中 QDA 平均較高，10 次中贏了 8 次，依規則選 QDA；但 LDA 也贏了 1 次，報告會照實寫出。兩個示範合起來看：Box’s M 都沒有決定方法，選擇完全由相同切分的 test 表現決定。</p>
 </section>
 </section>
 <section id="limits" class="level2">
